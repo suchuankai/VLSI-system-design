@@ -1,0 +1,1 @@
+`define Rtype 7'b0110011
