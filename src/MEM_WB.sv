@@ -1,7 +1,8 @@
-module ID_EXE(
+module MEM_WB(
 	input clk, 
 	input rst
 	);
+
 
 
 endmodule
