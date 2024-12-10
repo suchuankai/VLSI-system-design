@@ -10,13 +10,19 @@ module EX_MEM(
 	input alu_ctrl,
 	input [31:0] rs1_data,
 	input [31:0] rs2_data,
-	output [31:0] alu_out_wire,
+	input [31:0] imm,
+	input [4:0] rd_addr_ex,
+	input wb_en_ex,
+	output logic [4:0] rd_addr_mem,
+	output logic wb_en_mem,
+	output logic [31:0] src2_st1,    // For Store
+	output logic [31:0] alu_out_wire,
 	output logic [31:0] alu_out
 	);
 
 
 logic [31:0] src1_st1, src1_st2;
-logic [31:0] src2_st1, src2_st2;
+logic [31:0] src2_st2;
 
 always_comb begin
 	case(mux1_sel)
@@ -46,11 +52,10 @@ end
 always_comb begin
 	case(mux4_sel)
 		1'b0: src2_st2 = src2_st1;
-		//1'b1: src2_st2 = 
+		1'b1: src2_st2 = imm; 
 	endcase
 end
 
-logic [31:0] alu_out_wire;
 ALU ALU_0(
 	.alu_ctrl(alu_ctrl),
 	.src1(src1_st2),
@@ -64,6 +69,24 @@ always@(posedge clk, posedge rst) begin
 	end
 	else begin
 		alu_out <= alu_out_wire;
+	end
+end
+
+always@(posedge clk, posedge rst) begin
+	if(rst) begin
+		rd_addr_mem <= 5'd0;
+	end
+	else begin
+		rd_addr_mem <= rd_addr_ex;
+	end
+end
+
+always@(posedge clk, posedge rst) begin
+	if(rst) begin
+		wb_en_mem <= 1'b0;
+	end
+	else begin
+		wb_en_mem <= wb_en_ex;
 	end
 end
 

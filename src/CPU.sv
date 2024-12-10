@@ -48,39 +48,59 @@ Decoder decode_0(
 
 // Control signals
 logic [3:0] alu_ctrl;
+logic wb_en;
 logic mux3_sel, mux3_sel;
 Controller controller_0(
 	.clk(clk),
 	.rst(rst),
 	.opcode(opcode_wire),
+	.funct3(funct3_wire),
+	.funct7(funct7_wire),
 	.mux3_sel(mux3_sel),
 	.mux4_sel(mux4_sel),
-	.alu_ctrl(alu_ctrl)
+	.alu_ctrl(alu_ctrl),
+	.DM_WEB(DM_WEB),
+	.DM_BWEB(DM_BWEB),
+	.wb_en(wb_en)
 	);
 
-
+logic wb_en_wb;
+logic [4:0] rd_addr_wb;
 logic [31:0] rs1_data, rs2_data;
+logic [31:0] alu_out_wb;
+
 Register reg_0(
 	.clk(clk),
 	.rst(rst),
-	.wb_en(),
-	.wb_addr(),
-	.write_data(),
+	.wb_en(wb_en_wb),
+	.wb_addr(rd_addr_wb),
+	.write_data(alu_out_wb),
 	.rs1_addr(rs1_wire),
 	.rs2_addr(rs2_wire),
 	.rs1_data(rs1_data),
 	.rs2_data(rs2_data)
 	);
 
+logic wb_en_ex;
+logic [4:0] rd_addr_ex;
+logic [31:0] imm_ex;
 
 ID_EXE ID_EXE_0(
 	.clk(clk),
-    .rst(rst)
+    .rst(rst),
+    .wb_en_ID(wb_en),
+    .imm_wire(imm_wire),
+    .rd_addr(rd_wire),
+    .wb_en_ex(wb_en_ex),
+    .rd_addr_ex(rd_addr_ex),
+    .imm_ex(imm_ex)
     );
 
 
 logic [31:0] alu_out;
-logic [31:0] alu_out_wire;  // For DM quickly access
+logic [31:0] alu_out_wire;  // For DM quickly access(DM_addr)
+logic [4:0] rd_addr_mem;
+logic wb_en_mem;
 
 EX_MEM EX_MEM_0(
 	.clk(clk),
@@ -92,8 +112,28 @@ EX_MEM EX_MEM_0(
 	.alu_ctrl(alu_ctrl),
 	.rs1_data(rs1_data),
 	.rs2_data(rs2_data),
-	.alu_out_wire(alu_out_wire),
+	.imm(imm_ex),
+	.rd_addr_ex(rd_addr_ex),
+	.wb_en_ex(wb_en_ex),
+	.rd_addr_mem(rd_addr_mem),
+	.wb_en_mem(wb_en_mem),
+	.src2_st1(DM_IN),
+	.alu_out_wire(DM_A),
 	.alu_out(alu_out)
+    );
+
+
+
+
+MEM_WB MEM_WB_0(
+	.clk(clk),
+    .rst(rst),
+    .wb_en_mem(wb_en_mem),
+    .rd_addr_mem(rd_addr_mem),
+    .alu_out_mem(alu_out),
+    .alu_out_wb(alu_out_wb),
+    .wb_en_wb(wb_en_wb),
+    .rd_addr_wb(rd_addr_wb)  // Write back register address
     );
 
 endmodule
