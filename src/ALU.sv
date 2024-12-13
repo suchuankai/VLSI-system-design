@@ -19,6 +19,7 @@ always_comb begin
 		4'b0110: alu_out = src1 | src2;          // OR
 		4'b0111: alu_out = src1 & src2;          // AND
 		4'b1001: alu_out = src2;                 // LUI
+		default: alu_out = src1 + src2;          
 	endcase
 end
 

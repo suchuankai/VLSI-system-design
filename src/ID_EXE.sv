@@ -4,8 +4,12 @@ module ID_EXE(
 	input wb_en_ID,
 	input [31:0] imm_wire,
 	input [4:0] rd_addr,
+	input [31:0] rs1_data,
+	input [31:0] rs2_data,
 	output logic wb_en_ex,
 	output logic [4:0] rd_addr_ex,
+	output logic [31:0] rs1_data_reg,
+	output logic [31:0] rs2_data_reg,
 	output logic [31:0] imm_ex
 	);
 
@@ -33,6 +37,24 @@ always@(posedge clk or posedge rst) begin
 	end
 	else begin
 		imm_ex <= imm_wire;
+	end
+end
+
+always@(posedge clk or posedge rst) begin
+	if(rst) begin
+		rs1_data_reg <= 32'd0;
+	end
+	else begin
+		rs1_data_reg <= rs1_data;
+	end
+end
+
+always@(posedge clk or posedge rst) begin
+	if(rst) begin
+		rs2_data_reg <= 32'd0;
+	end
+	else begin
+		rs2_data_reg <= rs2_data;
 	end
 end
 

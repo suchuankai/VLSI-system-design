@@ -6,6 +6,13 @@ module Controller(
 	input [6:0] opcode,
 	input [2:0] funct3,
 	input [6:0] funct7,
+	input [4:0] rs1_addr,
+	input [4:0] rs2_addr,
+	input [4:0] rd_addr_ex,
+	input [4:0] rd_addr_mem,
+	input [4:0] rd_addr_wb,
+	output logic [1:0] mux1_sel,   // Select the src1 1st stage mux before ALU 
+	output logic [1:0] mux2_sel,   // Select the src2 1st stage mux before ALU 
 	output logic mux3_sel,   // Select the src1 2nd stage mux before ALU 
 	output logic mux4_sel,   // Select the src2 2nd stage mux before ALU 
 	output logic [3:0] alu_ctrl,
@@ -39,16 +46,52 @@ end
 // ALU dataflow
 always_ff@(posedge clk or posedge rst) begin
 	if(rst) begin
+		mux1_sel <= 2'b00;
+	end
+	else begin
+		if(rs1_addr==rd_addr_ex) mux1_sel <= 2'b01;
+		else if(rs1_addr==rd_addr_mem) mux1_sel <= 2'b10;
+		else if(rs1_addr==rd_addr_wb) mux1_sel <= 2'b11;
+		else mux1_sel <= 2'b00;
+	end
+end
+
+// always_comb begin
+// 	if(rs1_addr==rd_addr_ex) mux1_sel = 2'b01;
+// 	else if(rs1_addr==rd_addr_mem) mux1_sel = 2'b10;
+// 	else mux1_sel = 2'b00;
+// end
+
+always_ff@(posedge clk or posedge rst) begin
+	if(rst) begin
+		mux2_sel <= 2'b00;
+	end
+	else begin
+		if(rs2_addr==rd_addr_ex) mux2_sel <= 2'b01;
+		else if(rs2_addr==rd_addr_mem) mux2_sel <= 2'b10;
+		else if(rs2_addr==rd_addr_wb) mux2_sel <= 2'b11;
+		else mux2_sel <= 2'b00;
+	end
+end
+
+// always_comb begin
+// 	if(rs2_addr==rd_addr_ex) mux2_sel = 2'b01;
+// 	else if(rs2_addr==rd_addr_mem) mux2_sel = 2'b10;
+// 	else mux2_sel = 2'b00;
+// end
+
+always_ff@(posedge clk or posedge rst) begin
+	if(rst) begin
 		mux3_sel <= 1'b0;
 	end
 	else begin
-		mux3_sel <= 1'b0;
+		mux3_sel <= 1'b0; // incomplete
 	end
 end
 
 always_ff@(posedge clk or posedge rst) begin
 	if(rst) begin
-		mux4_sel <= 1'b1;
+		mux4_sel <= 1'b0;
 	end
 	else begin
 		mux4_sel <= (opcode==`Rtype)? 0:1;
