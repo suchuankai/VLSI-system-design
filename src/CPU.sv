@@ -1,3 +1,4 @@
+`include "PC.sv"
 `include "IF_ID.sv"
 `include "ID_EXE.sv"
 `include "EX_MEM.sv"
@@ -15,14 +16,37 @@ module CPU(
 	/* DM */
 	input [31:0] DM_OUT,
 	output DM_WEB,
-    output [31:0] DM_BWEB,
-    output [13:0] DM_A,
-    output [31:0] DM_IN 
+	output [31:0] DM_BWEB,
+	output [13:0] DM_A,
+	output [31:0] DM_IN 
 	);
 
+logic [31:0] src1_st1, src2_st1;
+assign DM_IN = src2_st1;
+logic [31:0] alu_out_wire;  // For DM quickly access(DM_addr)
+assign DM_A = alu_out_wire[15:2];
+
+logic [1:0] pc_sel;
+logic [31:0] pc_reg;
+logic [1:0] instr_sel;
+
+PC PC_0(.clk(clk),
+        .rst(rst),
+        .pc_sel(pc_sel),
+        .alu_out(alu_out_wire),
+        .pc(pc),
+        .pc_reg(pc_reg)
+        );
+
+logic [31:0] pc_ID;
+logic [31:0] instr_ID;
 IF_ID IF_ID_0(.clk(clk),
 	          .rst(rst),
-	          .pc(pc)
+	          .pc(pc_reg),
+	          .instr(instr),
+	          .instr_sel(instr_sel),
+	          .pc_ID(pc_ID),
+	          .instr_ID(instr_ID)
 	          );
 
 logic [6:0] opcode_wire;
@@ -36,7 +60,7 @@ logic [31:0] imm_wire;
 Decoder decode_0(
 	.clk(clk), 
 	.rst(rst),
-	.instr(instr),
+	.instr(instr_ID),
 	.opcode(opcode_wire),
 	.rd_addr(rd_wire),
 	.funct3(funct3_wire),
@@ -54,6 +78,7 @@ logic mux3_sel, mux3_sel;
 logic [4:0] rd_addr_mem;
 logic [4:0] rd_addr_ex;
 logic [4:0] rd_addr_wb;
+logic DM_WEB_ID;
 
 Controller controller_0(
 	.clk(clk),
@@ -63,6 +88,8 @@ Controller controller_0(
 	.funct7(funct7_wire),
 	.rs1_addr(rs1_wire),
 	.rs2_addr(rs2_wire),
+	.src1_st1(src1_st1),
+	.src2_st1(src2_st1),
 	.rd_addr_ex(rd_addr_ex),
 	.rd_addr_mem(rd_addr_mem),
 	.rd_addr_wb(rd_addr_wb),
@@ -70,10 +97,12 @@ Controller controller_0(
 	.mux2_sel(mux2_sel),
 	.mux3_sel(mux3_sel),
 	.mux4_sel(mux4_sel),
+	.pc_sel(pc_sel),
 	.alu_ctrl(alu_ctrl),
-	.DM_WEB(DM_WEB),
+	.DM_WEB_ID(DM_WEB),
 	.DM_BWEB(DM_BWEB),
-	.wb_en(wb_en)
+	.wb_en(wb_en),
+	.instr_sel(instr_sel)
 	);
 
 logic wb_en_wb;
@@ -92,19 +121,20 @@ Register reg_0(
 	.rs2_data(rs2_data)
 	);
 
-logic wb_en_ex;
 logic [31:0] imm_ex;
 logic [31:0] rs1_data_reg, rs2_data_reg;
+logic [31:0] pc_EX;
+logic DM_WEB_EX;
 
 ID_EXE ID_EXE_0(
-	.clk(clk),
+    .clk(clk),
     .rst(rst),
-    .wb_en_ID(wb_en),
+    .pc_ID(pc_ID),
     .imm_wire(imm_wire),
     .rs1_data(rs1_data),
     .rs2_data(rs2_data),
     .rd_addr(rd_wire),
-    .wb_en_ex(wb_en_ex),
+    .pc_EX(pc_EX),
     .rd_addr_ex(rd_addr_ex),
     .rs1_data_reg(rs1_data_reg),
     .rs2_data_reg(rs2_data_reg),
@@ -112,17 +142,18 @@ ID_EXE ID_EXE_0(
     );
 
 logic [31:0] alu_out_mem;
-logic [31:0] alu_out_wire;  // For DM quickly access(DM_addr)
-logic wb_en_mem;
+logic wb_en_mem, DM_WEB_MEM;
+
 
 EX_MEM EX_MEM_0(
 	.clk(clk),
-    .rst(rst),
-    .mux1_sel(mux1_sel),        
+        .rst(rst),
+        .mux1_sel(mux1_sel),        
 	.mux2_sel(mux2_sel), 
 	.mux3_sel(mux3_sel), 
 	.mux4_sel(mux4_sel), 
 	.alu_ctrl(alu_ctrl),
+	.pc_EX(pc_EX),
 	.rs1_data(rs1_data),
 	.rs2_data(rs2_data),
 	.rs1_data_reg(rs1_data_reg),
@@ -131,17 +162,18 @@ EX_MEM EX_MEM_0(
 	.fw_from_wb(alu_out_wb),
 	.imm(imm_ex),
 	.rd_addr_ex(rd_addr_ex),
-	.wb_en_ex(wb_en_ex),
+	.wb_en_ex(wb_en),
 	.rd_addr_mem(rd_addr_mem),
 	.wb_en_mem(wb_en_mem),
-	.src2_st1(DM_IN),
-	.alu_out_wire(DM_A),
+	.src1_st1(src1_st1),
+	.src2_st1(src2_st1),
+	.alu_out_wire(alu_out_wire),
 	.alu_out_mem(alu_out_mem)
-    );
+    	);
 
 
 MEM_WB MEM_WB_0(
-	.clk(clk),
+    .clk(clk),
     .rst(rst),
     .wb_en_mem(wb_en_mem),
     .rd_addr_mem(rd_addr_mem),

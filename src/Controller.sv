@@ -8,6 +8,8 @@ module Controller(
 	input [6:0] funct7,
 	input [4:0] rs1_addr,
 	input [4:0] rs2_addr,
+	input [31:0] src1_st1,
+	input [31:0] src2_st1,
 	input [4:0] rd_addr_ex,
 	input [4:0] rd_addr_mem,
 	input [4:0] rd_addr_wb,
@@ -15,10 +17,12 @@ module Controller(
 	output logic [1:0] mux2_sel,   // Select the src2 1st stage mux before ALU 
 	output logic mux3_sel,   // Select the src1 2nd stage mux before ALU 
 	output logic mux4_sel,   // Select the src2 2nd stage mux before ALU 
+	output logic [1:0] pc_sel, // Select PC+4, PC, jump/branch address
 	output logic [3:0] alu_ctrl,
-	output logic DM_WEB,
+	output logic DM_WEB_ID,
 	output logic [31:0] DM_BWEB,
-	output logic wb_en
+	output logic wb_en,
+	output logic [1:0] instr_sel 
 	);
 
 
@@ -56,12 +60,6 @@ always_ff@(posedge clk or posedge rst) begin
 	end
 end
 
-// always_comb begin
-// 	if(rs1_addr==rd_addr_ex) mux1_sel = 2'b01;
-// 	else if(rs1_addr==rd_addr_mem) mux1_sel = 2'b10;
-// 	else mux1_sel = 2'b00;
-// end
-
 always_ff@(posedge clk or posedge rst) begin
 	if(rst) begin
 		mux2_sel <= 2'b00;
@@ -74,18 +72,12 @@ always_ff@(posedge clk or posedge rst) begin
 	end
 end
 
-// always_comb begin
-// 	if(rs2_addr==rd_addr_ex) mux2_sel = 2'b01;
-// 	else if(rs2_addr==rd_addr_mem) mux2_sel = 2'b10;
-// 	else mux2_sel = 2'b00;
-// end
-
 always_ff@(posedge clk or posedge rst) begin
 	if(rst) begin
 		mux3_sel <= 1'b0;
 	end
 	else begin
-		mux3_sel <= 1'b0; // incomplete
+		mux3_sel <= (opcode==`Branch || opcode==`AUIPC || opcode==`JAL)? 1'b1:1'b0; // PC relate instruction
 	end
 end
 
@@ -94,18 +86,18 @@ always_ff@(posedge clk or posedge rst) begin
 		mux4_sel <= 1'b0;
 	end
 	else begin
-		mux4_sel <= (opcode==`Rtype)? 0:1;
+		mux4_sel <= (opcode==`Rtype)? 1'b0:1'b1;
 	end
 end
 
 // DM Load/Store enable 
 always_ff@(posedge clk, posedge rst) begin
 	if(rst) begin
-		DM_WEB <= 1'b1;  // read
+		DM_WEB_ID <= 1'b1;  // read
 		DM_BWEB <= 32'd0;
 	end
 	else begin
-		DM_WEB <= (opcode==`Store)? 0:1;
+		DM_WEB_ID <= (opcode==`Store)? 0:1;
 	end
 end
 
@@ -115,9 +107,64 @@ always_ff@(posedge clk, posedge rst) begin
 		wb_en <= 1'b0;
 	end
 	else begin
-		wb_en <= (opcode==`Branch)? 0:1;
+		wb_en <= (opcode==`Branch || pc_sel==2'b01)? 0:1;
 	end
 end
 
+// Branch Compare
+logic taken;
+always_comb begin
+	if(opcode==`Branch) begin
+		case(funct3[2:1])
+			2'b00: begin   // BEQ, BNE
+				taken = (src1_st1 == src2_st1) ^ funct3[0];
+			end
+			2'b01: begin   // BLT, BGE
+				taken = ($signed(src1_st1) < $signed(src2_st1)) ^ funct3[0];
+			end  
+			2'b10: begin   // BLTU、 BGEU
+				taken = (src1_st1 < src2_st1) ^ funct3[0];
+			end
+			default: begin
+				taken = 1'b0;
+			end
+		endcase
+	end
+	else taken = 1'b0;		
+end
+
+// logic taken_reg;
+// always_ff@(posedge clk, posedge rst) begin
+// 	if(rst) begin
+// 		taken_reg <= 1'b0;
+// 	end
+// 	else begin
+// 		taken_reg <= taken;
+// 	end
+// end
+
+always_ff@(posedge clk, posedge rst) begin
+	if(rst) begin
+		instr_sel <= 2'b00;
+	end
+	else begin
+		if(pc_sel==2'b01) instr_sel <= 2'b10;
+		// else if() load-use
+		else instr_sel <= 2'b00;
+	end
+end
+
+always_ff@(posedge clk, posedge rst) begin
+	if(rst) begin
+		pc_sel <= 2'b00;
+	end
+	else begin
+		case(opcode)
+			`JAL: pc_sel <= 2'b01; // ALU out
+			`Branch: pc_sel <= (taken==1'b1)? 2'b01 : 2'b00; // ALU out
+			default: pc_sel <= 2'b00;
+		endcase
+	end
+end
 
 endmodule

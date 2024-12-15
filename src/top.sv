@@ -48,7 +48,6 @@ SRAM_wrapper IM1(.CLK(clk),
 logic w_en;            // Read/Write enable
 logic [31:0] bweb;     // Bit write enable 
 logic [13:0] addr;     // Data memory Read/Write address
-logic [31:0] DM_input; 
 
 
 

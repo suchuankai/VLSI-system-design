@@ -7,7 +7,8 @@ module EX_MEM(
 	input [1:0] mux2_sel, 
 	input mux3_sel, 
 	input mux4_sel, 
-	input alu_ctrl,
+	input [3:0] alu_ctrl,
+	input [31:0] pc_EX,
 	input [31:0] rs1_data,
 	input [31:0] rs2_data,
 	input [31:0] rs1_data_reg,
@@ -19,6 +20,7 @@ module EX_MEM(
 	input wb_en_ex,
 	output logic [4:0] rd_addr_mem,
 	output logic wb_en_mem,
+	output logic [31:0] src1_st1,    // For Store
 	output logic [31:0] src2_st1,    // For Store
 	output logic [31:0] alu_out_wire,
 	output logic [31:0] alu_out_mem
@@ -52,7 +54,7 @@ end
 always_comb begin
 	case(mux3_sel)
 		1'b0: src1_st2 = src1_st1;
-		1'b1: src1_st2 = src1_st1;
+		1'b1: src1_st2 = pc_EX;
 	endcase
 end
 
@@ -96,6 +98,5 @@ always@(posedge clk, posedge rst) begin
 		wb_en_mem <= wb_en_ex;
 	end
 end
-
 
 endmodule
