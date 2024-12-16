@@ -26,7 +26,6 @@ module EX_MEM(
 	output logic [31:0] alu_out_mem
 	);
 
-
 logic [31:0] src1_st1, src1_st2;
 logic [31:0] src2_st2;
 

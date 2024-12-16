@@ -23,9 +23,6 @@ always@(posedge clk, posedge rst) begin
 		end
 	end
 	else begin
-		// Register Read
-		
-
 		// Register Write
 		if(wb_en && wb_addr!=5'd0) begin
 			register[wb_addr] <= write_data;

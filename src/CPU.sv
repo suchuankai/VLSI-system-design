@@ -30,24 +30,26 @@ logic [1:0] pc_sel;
 logic [31:0] pc_reg;
 logic [1:0] instr_sel;
 
-PC PC_0(.clk(clk),
-        .rst(rst),
-        .pc_sel(pc_sel),
-        .alu_out(alu_out_wire),
-        .pc(pc),
-        .pc_reg(pc_reg)
-        );
+PC PC_0(
+	.clk(clk),
+    .rst(rst),
+    .pc_sel(pc_sel),
+    .alu_out(alu_out_wire),
+    .pc(pc),
+    .pc_reg(pc_reg)
+    );
 
 logic [31:0] pc_ID;
 logic [31:0] instr_ID;
-IF_ID IF_ID_0(.clk(clk),
-	          .rst(rst),
-	          .pc(pc_reg),
-	          .instr(instr),
-	          .instr_sel(instr_sel),
-	          .pc_ID(pc_ID),
-	          .instr_ID(instr_ID)
-	          );
+IF_ID IF_ID_0(
+	.clk(clk),
+	.rst(rst),
+	.pc(pc_reg),
+	.instr(instr),
+	.instr_sel(instr_sel),
+	.pc_ID(pc_ID),
+	.instr_ID(instr_ID)
+	);
 
 logic [6:0] opcode_wire;
 logic [4:0] rd_wire;
@@ -72,7 +74,7 @@ Decoder decode_0(
 
 // Control signals
 logic [3:0] alu_ctrl;
-logic wb_en;
+logic wb_en, wb_en_mem, wb_en_wb;
 logic [1:0] mux1_sel, mux2_sel;
 logic mux3_sel, mux3_sel;
 logic [4:0] rd_addr_mem;
@@ -92,7 +94,9 @@ Controller controller_0(
 	.src2_st1(src2_st1),
 	.rd_addr_ex(rd_addr_ex),
 	.rd_addr_mem(rd_addr_mem),
+	.wb_en_mem(wb_en_mem),
 	.rd_addr_wb(rd_addr_wb),
+	.wb_en_wb(wb_en_wb),
 	.mux1_sel(mux1_sel),
 	.mux2_sel(mux2_sel),
 	.mux3_sel(mux3_sel),
@@ -105,7 +109,6 @@ Controller controller_0(
 	.instr_sel(instr_sel)
 	);
 
-logic wb_en_wb;
 logic [31:0] rs1_data, rs2_data;
 logic [31:0] alu_out_wb;
 
@@ -142,13 +145,13 @@ ID_EXE ID_EXE_0(
     );
 
 logic [31:0] alu_out_mem;
-logic wb_en_mem, DM_WEB_MEM;
+logic DM_WEB_MEM;
 
 
 EX_MEM EX_MEM_0(
 	.clk(clk),
-        .rst(rst),
-        .mux1_sel(mux1_sel),        
+    .rst(rst),
+    .mux1_sel(mux1_sel),        
 	.mux2_sel(mux2_sel), 
 	.mux3_sel(mux3_sel), 
 	.mux4_sel(mux4_sel), 

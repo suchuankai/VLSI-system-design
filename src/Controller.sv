@@ -12,7 +12,9 @@ module Controller(
 	input [31:0] src2_st1,
 	input [4:0] rd_addr_ex,
 	input [4:0] rd_addr_mem,
+	input wb_en_mem,
 	input [4:0] rd_addr_wb,
+	input wb_en_wb,
 	output logic [1:0] mux1_sel,   // Select the src1 1st stage mux before ALU 
 	output logic [1:0] mux2_sel,   // Select the src2 1st stage mux before ALU 
 	output logic mux3_sel,   // Select the src1 2nd stage mux before ALU 
@@ -53,9 +55,9 @@ always_ff@(posedge clk or posedge rst) begin
 		mux1_sel <= 2'b00;
 	end
 	else begin
-		if(rs1_addr==rd_addr_ex) mux1_sel <= 2'b01;
-		else if(rs1_addr==rd_addr_mem) mux1_sel <= 2'b10;
-		else if(rs1_addr==rd_addr_wb) mux1_sel <= 2'b11;
+		if(rs1_addr==rd_addr_ex && wb_en) mux1_sel <= 2'b01;
+		else if(rs1_addr==rd_addr_mem && wb_en_mem) mux1_sel <= 2'b10;
+		else if(rs1_addr==rd_addr_wb && wb_en_wb) mux1_sel <= 2'b11;
 		else mux1_sel <= 2'b00;
 	end
 end
@@ -65,9 +67,9 @@ always_ff@(posedge clk or posedge rst) begin
 		mux2_sel <= 2'b00;
 	end
 	else begin
-		if(rs2_addr==rd_addr_ex) mux2_sel <= 2'b01;
-		else if(rs2_addr==rd_addr_mem) mux2_sel <= 2'b10;
-		else if(rs2_addr==rd_addr_wb) mux2_sel <= 2'b11;
+		if(rs2_addr==rd_addr_ex && wb_en) mux2_sel <= 2'b01;
+		else if(rs2_addr==rd_addr_mem && wb_en_mem) mux2_sel <= 2'b10;
+		else if(rs2_addr==rd_addr_wb && wb_en_wb) mux2_sel <= 2'b11;
 		else mux2_sel <= 2'b00;
 	end
 end
@@ -111,19 +113,29 @@ always_ff@(posedge clk, posedge rst) begin
 	end
 end
 
+logic [2:0] funct3_reg; 
+always_ff@(posedge clk, posedge rst) begin
+	if(rst) begin
+		funct3_reg <= 3'b000;
+	end
+	else begin
+		funct3_reg <= funct3;
+	end
+end
+
 // Branch Compare
 logic taken;
 always_comb begin
 	if(opcode==`Branch) begin
-		case(funct3[2:1])
+		case(funct3_reg[2:1])
 			2'b00: begin   // BEQ, BNE
-				taken = (src1_st1 == src2_st1) ^ funct3[0];
+				taken = (src1_st1 == src2_st1) ^ funct3_reg[0];
 			end
-			2'b01: begin   // BLT, BGE
-				taken = ($signed(src1_st1) < $signed(src2_st1)) ^ funct3[0];
+			2'b10: begin   // BLT, BGE
+				taken = ($signed(src1_st1) < $signed(src2_st1)) ^ funct3_reg[0];
 			end  
-			2'b10: begin   // BLTU、 BGEU
-				taken = (src1_st1 < src2_st1) ^ funct3[0];
+			2'b11: begin   // BLTU、 BGEU
+				taken = ($unsigned(src1_st1) < $unsigned(src2_st1)) ^ funct3_reg[0];
 			end
 			default: begin
 				taken = 1'b0;

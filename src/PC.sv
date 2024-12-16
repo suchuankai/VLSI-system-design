@@ -19,7 +19,7 @@ always@(posedge clk, posedge rst) begin
 	end
 	else begin
 		case(pc_sel)
-			2'b00: pc_reg <= (pc_reg==800)? 800 : pc_add4;
+			2'b00: pc_reg <= (pc_reg==2048)? 2048 : pc_add4;
 			2'b01: pc_reg <= alu_out;
 		endcase
 	end
