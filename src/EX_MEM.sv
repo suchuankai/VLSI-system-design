@@ -8,6 +8,8 @@ module EX_MEM(
 	input mux3_sel, 
 	input mux4_sel, 
 	input [3:0] alu_ctrl,
+	input [1:0] mul_ctrl,
+	input alu_mul_sel,
 	input [31:0] pc_EX,
 	input [31:0] rs1_data,
 	input [31:0] rs2_data,
@@ -64,11 +66,16 @@ always_comb begin
 	endcase
 end
 
+logic [31:0] mul_out;
 ALU ALU_0(
 	.alu_ctrl(alu_ctrl),
+	.mul_ctrl(mul_ctrl),
+	.mul_in1(src1_st1),
+	.mul_in2(src2_st1),
 	.src1(src1_st2),
 	.src2(src2_st2),
-	.alu_out(alu_out_wire)
+	.alu_out(alu_out_wire),
+	.mul_out(mul_out)
 	);
 
 always@(posedge clk, posedge rst) begin
@@ -76,7 +83,7 @@ always@(posedge clk, posedge rst) begin
 		alu_out_mem <= 32'd0;
 	end
 	else begin
-		alu_out_mem <= alu_out_wire;
+		alu_out_mem <= (alu_mul_sel)? mul_out : alu_out_wire;
 	end
 end
 

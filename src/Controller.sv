@@ -21,6 +21,8 @@ module Controller(
 	output logic mux4_sel,   // Select the src2 2nd stage mux before ALU 
 	output logic [1:0] pc_sel, // Select PC+4, PC, jump/branch address
 	output logic [3:0] alu_ctrl,
+	output logic [1:0] mul_ctrl,
+	output logic alu_mul_sel,
 	output logic DM_WEB_ID,
 	output logic [31:0] DM_BWEB,
 	output logic wb_en,
@@ -46,6 +48,34 @@ always_ff@(posedge clk or posedge rst) begin
 			`LUI:    alu_ctrl <= 4'b1001;
 			default: alu_ctrl <= 4'b0000;
 		endcase
+	end
+end
+
+always_ff@(posedge clk or posedge rst) begin
+	if(rst) begin
+		mul_ctrl <= 2'b00;
+	end
+	else begin
+		if(opcode==`Rtype) begin
+			case({funct7[0], funct3[1:0]})
+				3'b100: mul_ctrl <= 2'b00;
+				3'b101: mul_ctrl <= 2'b01;
+				3'b110: mul_ctrl <= 2'b10;
+				3'b111: mul_ctrl <= 2'b11;
+			endcase
+		end
+	end
+end
+
+always_ff@(posedge clk or posedge rst) begin
+	if(rst) begin
+		alu_mul_sel <= 1'b0;
+	end
+	else begin
+		if(opcode==`Rtype && funct7[0]) begin
+			alu_mul_sel <= 1'b1;
+		end
+		else alu_mul_sel <= 1'b0;
 	end
 end
 

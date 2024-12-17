@@ -74,6 +74,7 @@ Decoder decode_0(
 
 // Control signals
 logic [3:0] alu_ctrl;
+logic [1:0] mul_ctrl;
 logic wb_en, wb_en_mem, wb_en_wb;
 logic [1:0] mux1_sel, mux2_sel;
 logic mux3_sel, mux3_sel;
@@ -81,6 +82,7 @@ logic [4:0] rd_addr_mem;
 logic [4:0] rd_addr_ex;
 logic [4:0] rd_addr_wb;
 logic DM_WEB_ID;
+logic alu_mul_sel;
 
 Controller controller_0(
 	.clk(clk),
@@ -103,6 +105,8 @@ Controller controller_0(
 	.mux4_sel(mux4_sel),
 	.pc_sel(pc_sel),
 	.alu_ctrl(alu_ctrl),
+	.mul_ctrl(mul_ctrl),
+	.alu_mul_sel(alu_mul_sel),
 	.DM_WEB_ID(DM_WEB),
 	.DM_BWEB(DM_BWEB),
 	.wb_en(wb_en),
@@ -154,8 +158,10 @@ EX_MEM EX_MEM_0(
     .mux1_sel(mux1_sel),        
 	.mux2_sel(mux2_sel), 
 	.mux3_sel(mux3_sel), 
-	.mux4_sel(mux4_sel), 
+	.mux4_sel(mux4_sel),
 	.alu_ctrl(alu_ctrl),
+	.mul_ctrl(mul_ctrl), 
+	.alu_mul_sel(alu_mul_sel),
 	.pc_EX(pc_EX),
 	.rs1_data(rs1_data),
 	.rs2_data(rs2_data),
