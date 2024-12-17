@@ -55,9 +55,9 @@ always_ff@(posedge clk or posedge rst) begin
 		mux1_sel <= 2'b00;
 	end
 	else begin
-		if(rs1_addr==rd_addr_ex && wb_en) mux1_sel <= 2'b01;
-		else if(rs1_addr==rd_addr_mem && wb_en_mem) mux1_sel <= 2'b10;
-		else if(rs1_addr==rd_addr_wb && wb_en_wb) mux1_sel <= 2'b11;
+		if(rs1_addr==rd_addr_ex && rd_addr_ex!=5'd0 && wb_en) mux1_sel <= 2'b01;
+		else if(rs1_addr==rd_addr_mem && rd_addr_mem!=5'd0 && wb_en_mem) mux1_sel <= 2'b10;
+		else if(rs1_addr==rd_addr_wb && rd_addr_wb!=5'd0 && wb_en_wb) mux1_sel <= 2'b11;
 		else mux1_sel <= 2'b00;
 	end
 end
@@ -67,9 +67,9 @@ always_ff@(posedge clk or posedge rst) begin
 		mux2_sel <= 2'b00;
 	end
 	else begin
-		if(rs2_addr==rd_addr_ex && wb_en) mux2_sel <= 2'b01;
-		else if(rs2_addr==rd_addr_mem && wb_en_mem) mux2_sel <= 2'b10;
-		else if(rs2_addr==rd_addr_wb && wb_en_wb) mux2_sel <= 2'b11;
+		if(rs2_addr==rd_addr_ex && rd_addr_ex!=5'd0 && wb_en) mux2_sel <= 2'b01;
+		else if(rs2_addr==rd_addr_mem && rd_addr_mem!=5'd0 && wb_en_mem) mux2_sel <= 2'b10;
+		else if(rs2_addr==rd_addr_wb && rd_addr_wb!=5'd0 && wb_en_wb) mux2_sel <= 2'b11;
 		else mux2_sel <= 2'b00;
 	end
 end
