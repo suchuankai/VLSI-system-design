@@ -9,7 +9,7 @@ module EX_MEM(
 	input mux4_sel, 
 	input [3:0] alu_ctrl,
 	input [1:0] mul_ctrl,
-	input alu_mul_sel,
+	input [1:0] alu_mul_sel,
 	input [31:0] pc_EX,
 	input [31:0] rs1_data,
 	input [31:0] rs2_data,
@@ -83,7 +83,13 @@ always@(posedge clk, posedge rst) begin
 		alu_out_mem <= 32'd0;
 	end
 	else begin
-		alu_out_mem <= (alu_mul_sel)? mul_out : alu_out_wire;
+		case(alu_mul_sel)
+			2'b00: alu_out_mem <= alu_out_wire;
+			2'b01: alu_out_mem <= mul_out;
+			2'b10: alu_out_mem <= pc_EX + 4;   // For jalr
+			default: alu_out_mem <= alu_out_wire;
+		endcase
+		// alu_out_mem <= (alu_mul_sel)? mul_out : alu_out_wire;
 	end
 end
 

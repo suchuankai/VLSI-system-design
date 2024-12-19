@@ -82,7 +82,8 @@ logic [4:0] rd_addr_mem;
 logic [4:0] rd_addr_ex;
 logic [4:0] rd_addr_wb;
 logic DM_WEB_ID;
-logic alu_mul_sel;
+logic [1:0] alu_mul_sel;
+logic [31:0] rs1_data, rs2_data;
 
 Controller controller_0(
 	.clk(clk),
@@ -92,8 +93,8 @@ Controller controller_0(
 	.funct7(funct7_wire),
 	.rs1_addr(rs1_wire),
 	.rs2_addr(rs2_wire),
-	.src1_st1(src1_st1),
-	.src2_st1(src2_st1),
+	.rs1_data(rs1_data),
+	.rs2_data(rs2_data),
 	.rd_addr_ex(rd_addr_ex),
 	.rd_addr_mem(rd_addr_mem),
 	.wb_en_mem(wb_en_mem),
@@ -113,7 +114,7 @@ Controller controller_0(
 	.instr_sel(instr_sel)
 	);
 
-logic [31:0] rs1_data, rs2_data;
+
 logic [31:0] alu_out_wb;
 
 Register reg_0(

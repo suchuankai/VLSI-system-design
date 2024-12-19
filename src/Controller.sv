@@ -8,8 +8,8 @@ module Controller(
 	input [6:0] funct7,
 	input [4:0] rs1_addr,
 	input [4:0] rs2_addr,
-	input [31:0] src1_st1,
-	input [31:0] src2_st1,
+	input [31:0] rs1_data,
+	input [31:0] rs2_data,
 	input [4:0] rd_addr_ex,
 	input [4:0] rd_addr_mem,
 	input wb_en_mem,
@@ -22,7 +22,7 @@ module Controller(
 	output logic [1:0] pc_sel, // Select PC+4, PC, jump/branch address
 	output logic [3:0] alu_ctrl,
 	output logic [1:0] mul_ctrl,
-	output logic alu_mul_sel,
+	output logic [1:0] alu_mul_sel,
 	output logic DM_WEB_ID,
 	output logic [31:0] DM_BWEB,
 	output logic wb_en,
@@ -69,13 +69,12 @@ end
 
 always_ff@(posedge clk or posedge rst) begin
 	if(rst) begin
-		alu_mul_sel <= 1'b0;
+		alu_mul_sel <= 2'b00;
 	end
 	else begin
-		if(opcode==`Rtype && funct7[0]) begin
-			alu_mul_sel <= 1'b1;
-		end
-		else alu_mul_sel <= 1'b0;
+		if(opcode==`Rtype && funct7[0]) alu_mul_sel <= 2'b01;
+		else if(opcode==`JALR || opcode==`JAL) alu_mul_sel <= 2'b10;
+		else alu_mul_sel <= 2'b00;
 	end
 end
 
@@ -157,15 +156,15 @@ end
 logic taken;
 always_comb begin
 	if(opcode==`Branch) begin
-		case(funct3_reg[2:1])
+		case(funct3[2:1])
 			2'b00: begin   // BEQ, BNE
-				taken = (src1_st1 == src2_st1) ^ funct3_reg[0];
+				taken = (rs1_data == rs2_data) ^ funct3[0];
 			end
 			2'b10: begin   // BLT, BGE
-				taken = ($signed(src1_st1) < $signed(src2_st1)) ^ funct3_reg[0];
+				taken = ($signed(rs1_data) < $signed(rs2_data)) ^ funct3[0];
 			end  
 			2'b11: begin   // BLTU、 BGEU
-				taken = ($unsigned(src1_st1) < $unsigned(src2_st1)) ^ funct3_reg[0];
+				taken = ($unsigned(rs1_data) < $unsigned(rs2_data)) ^ funct3[0];
 			end
 			default: begin
 				taken = 1'b0;
@@ -185,6 +184,7 @@ end
 // 	end
 // end
 
+/*
 always_ff@(posedge clk, posedge rst) begin
 	if(rst) begin
 		instr_sel <= 2'b00;
@@ -195,6 +195,13 @@ always_ff@(posedge clk, posedge rst) begin
 		else instr_sel <= 2'b00;
 	end
 end
+*/
+
+always_comb begin
+		if(pc_sel==2'b01) instr_sel = 2'b10;
+		// else if() load-use
+		else instr_sel = 2'b00;
+end
 
 always_ff@(posedge clk, posedge rst) begin
 	if(rst) begin
@@ -202,7 +209,8 @@ always_ff@(posedge clk, posedge rst) begin
 	end
 	else begin
 		case(opcode)
-			`JAL: pc_sel <= 2'b01; // ALU out
+			`JAL: pc_sel <= 2'b01; // ALU out  
+			`JALR: pc_sel <= 2'b01; // ALU out  
 			`Branch: pc_sel <= (taken==1'b1)? 2'b01 : 2'b00; // ALU out
 			default: pc_sel <= 2'b00;
 		endcase
