@@ -30,7 +30,7 @@ end
 always_comb begin
 	case(instr_sel)
 		2'b00: instr_ID = instr;
-		2'b01: instr_ID = instr_reg;
+		2'b01: instr_ID = instr_reg;    // Load use stall one cycle
 		2'b10: instr_ID = 32'h0000_0013;
 		default: instr_ID = instr;
 	endcase

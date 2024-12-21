@@ -19,7 +19,7 @@ assign rs2_data = (rs2_addr==5'd0)? 32'd0 : register[rs2_addr];
 always@(posedge clk, posedge rst) begin
 	if(rst) begin
 		for(i=1; i<32; i=i+1) begin
-			//register[i] <= 32'd0;
+			register[i] <= 32'd0;
 		end
 	end
 	else begin

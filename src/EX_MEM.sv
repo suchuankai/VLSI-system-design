@@ -20,8 +20,12 @@ module EX_MEM(
 	input [31:0] imm,
 	input [4:0] rd_addr_ex,
 	input wb_en_ex,
+	input [2:0] is_load_ex,
+	input is_store_ex,
 	output logic [4:0] rd_addr_mem,
 	output logic wb_en_mem,
+	output logic [2:0] is_load_mem,
+	output logic is_store_mem,
 	output logic [31:0] src1_st1,    // For Store
 	output logic [31:0] src2_st1,    // For Store
 	output logic [31:0] alu_out_wire,
@@ -37,7 +41,6 @@ always_comb begin
 		2'b00: src1_st1 = rs1_data_reg;
 		2'b01: src1_st1 = fw_from_mem;
 		2'b10: src1_st1 = fw_from_wb;
-		2'b11: src1_st1 = rs1_data;
 		default: src1_st1 = rs1_data_reg;
 	endcase
 end
@@ -47,7 +50,6 @@ always_comb begin
 		2'b00: src2_st1 = rs2_data_reg;
 		2'b01: src2_st1 = fw_from_mem;
 		2'b10: src2_st1 = fw_from_wb;
-		2'b11: src2_st1 = rs2_data;
 		default: src2_st1 = rs2_data_reg;
 	endcase
 end
@@ -108,6 +110,24 @@ always@(posedge clk, posedge rst) begin
 	end
 	else begin
 		wb_en_mem <= wb_en_ex;
+	end
+end
+
+always@(posedge clk, posedge rst) begin
+	if(rst) begin
+		is_store_mem <= 1'b0;
+	end
+	else begin
+		is_store_mem <= is_store_ex;
+	end
+end
+
+always@(posedge clk, posedge rst) begin
+	if(rst) begin
+		is_load_mem <= 3'b000;
+	end
+	else begin
+		is_load_mem <= is_load_ex;
 	end
 end
 

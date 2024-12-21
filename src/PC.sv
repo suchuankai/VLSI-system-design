@@ -21,6 +21,7 @@ always@(posedge clk, posedge rst) begin
 		case(pc_sel)
 			2'b00: pc_reg <= (pc_reg==2048)? 2048 : pc_add4;
 			2'b01: pc_reg <= alu_out;
+			2'b10: pc_reg <= pc_reg;
 		endcase
 	end
 end

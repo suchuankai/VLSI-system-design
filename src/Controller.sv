@@ -23,7 +23,9 @@ module Controller(
 	output logic [3:0] alu_ctrl,
 	output logic [1:0] mul_ctrl,
 	output logic [1:0] alu_mul_sel,
-	output logic DM_WEB_ID,
+	output logic DM_WEB_EX,
+	output logic [2:0] is_load_ex,
+	output logic is_store_ex, 
 	output logic [31:0] DM_BWEB,
 	output logic wb_en,
 	output logic [1:0] instr_sel 
@@ -121,14 +123,42 @@ always_ff@(posedge clk or posedge rst) begin
 	end
 end
 
-// DM Load/Store enable 
+// Load use stall control
+logic [6:0] opcode_reg;
+logic load_use, load_use_reg;
+
 always_ff@(posedge clk, posedge rst) begin
 	if(rst) begin
-		DM_WEB_ID <= 1'b1;  // read
-		DM_BWEB <= 32'd0;
+		opcode_reg <= 1'b0;
 	end
 	else begin
-		DM_WEB_ID <= (opcode==`Store)? 0:1;
+		opcode_reg <= (load_use)? 7'd0: opcode;
+	end
+end
+
+assign load_use = ( opcode_reg==`Load && ((rd_addr_ex==rs1_addr) || (rd_addr_ex==rs2_addr)) );
+
+always_ff@(posedge clk, posedge rst) begin
+	if(rst) begin
+		load_use_reg <= 1'b0;
+	end
+	else begin
+		load_use_reg <= load_use;
+	end
+end
+
+// DM Load/Store enable 
+logic delay;
+always_ff@(posedge clk, posedge rst) begin
+	if(rst) begin
+		DM_WEB_EX <= 1'b1;  // read
+		DM_BWEB <= 32'd0;
+		delay <= 1'b0;
+	end
+	else begin
+		delay <= 1'b1;
+		if(delay)
+			DM_WEB_EX <= (opcode==`Store && !load_use)? 0:1;
 	end
 end
 
@@ -138,7 +168,7 @@ always_ff@(posedge clk, posedge rst) begin
 		wb_en <= 1'b0;
 	end
 	else begin
-		wb_en <= (opcode==`Branch || pc_sel==2'b01)? 0:1;
+		wb_en <= (opcode==`Branch || opcode==`Store || pc_sel==2'b01 || load_use)? 0:1;
 	end
 end
 
@@ -154,24 +184,28 @@ end
 
 // Branch Compare
 logic taken;
-always_comb begin
-	if(opcode==`Branch) begin
-		case(funct3[2:1])
-			2'b00: begin   // BEQ, BNE
-				taken = (rs1_data == rs2_data) ^ funct3[0];
-			end
-			2'b10: begin   // BLT, BGE
-				taken = ($signed(rs1_data) < $signed(rs2_data)) ^ funct3[0];
-			end  
-			2'b11: begin   // BLTU、 BGEU
-				taken = ($unsigned(rs1_data) < $unsigned(rs2_data)) ^ funct3[0];
-			end
-			default: begin
-				taken = 1'b0;
-			end
-		endcase
+always_ff@(posedge clk, posedge rst) begin
+	if(rst) begin
+		taken <= 1'b0;
 	end
-	else taken = 1'b0;		
+	else begin
+		if(opcode==`Branch) begin
+			case(funct3[2:1])
+				2'b00: begin   // BEQ, BNE
+					taken <= (rs1_data == rs2_data) ^ funct3[0];
+				end
+				2'b10: begin   // BLT, BGE
+					taken <= ($signed(rs1_data) < $signed(rs2_data)) ^ funct3[0];
+				end  
+				2'b11: begin   // BLTU、 BGEU
+					taken <= ($unsigned(rs1_data) < $unsigned(rs2_data)) ^ funct3[0];
+				end
+				default: begin
+					taken <= 1'b0;
+				end
+			endcase
+		end
+	end		
 end
 
 // logic taken_reg;
@@ -197,24 +231,55 @@ always_ff@(posedge clk, posedge rst) begin
 end
 */
 
+
 always_comb begin
-		if(pc_sel==2'b01) instr_sel = 2'b10;
-		// else if() load-use
-		else instr_sel = 2'b00;
+	if(pc_sel==2'b01) instr_sel = 2'b10;
+	else if(load_use_reg) instr_sel = 2'b01; // When load use occur, still use previous instr.
+	else instr_sel = 2'b00;
+end
+
+always_comb begin
+	case(opcode_reg)
+		`JAL: pc_sel = 2'b01; // ALU out  
+		`JALR: pc_sel = 2'b01; // ALU out  
+		`Branch: pc_sel = (taken==1'b1)? 2'b01 : 2'b00; // ALU out
+		`Load: pc_sel = ((rd_addr_ex==rs1_addr) || (rd_addr_ex==rs2_addr))? 2'b10:2'b00;
+		default: pc_sel = 2'b00;
+	endcase
 end
 
 always_ff@(posedge clk, posedge rst) begin
 	if(rst) begin
-		pc_sel <= 2'b00;
+		is_store_ex <= 1'b0;
 	end
 	else begin
-		case(opcode)
-			`JAL: pc_sel <= 2'b01; // ALU out  
-			`JALR: pc_sel <= 2'b01; // ALU out  
-			`Branch: pc_sel <= (taken==1'b1)? 2'b01 : 2'b00; // ALU out
-			default: pc_sel <= 2'b00;
-		endcase
+		is_store_ex <= (opcode==`Store)? 1'b1:1'b0;
 	end
 end
+
+always_ff@(posedge clk, posedge rst) begin
+	if(rst) begin
+		is_load_ex <= 3'b000;
+	end
+	else begin
+		if(opcode==`Load) begin
+			case(funct3)
+				3'b000: is_load_ex <= 3'b001;  // LB
+				3'b001: is_load_ex <= 3'b010;  // LH
+				3'b010: is_load_ex <= 3'b011;  // LW
+				3'b100: is_load_ex <= 3'b100;  // LHU
+				3'b101: is_load_ex <= 3'b101;  // LBU
+				default: is_load_ex <= 3'b000;
+			endcase
+		end
+		else is_load_ex <= 3'b000;
+	end
+end
+
+
+
+
+
+
 
 endmodule
