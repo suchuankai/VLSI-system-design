@@ -27,13 +27,26 @@ always@(posedge clk, posedge rst) begin
 	end
 end
 
+logic flush;  // Each time branch taken or jump instrution will cause two bubbles.
+always@(posedge clk, posedge rst) begin
+	if(rst) begin
+		flush <= 1'b0;
+	end
+	else begin
+		flush <= instr_sel[1];
+	end
+end
+
 always_comb begin
-	case(instr_sel)
-		2'b00: instr_ID = instr;
-		2'b01: instr_ID = instr_reg;    // Load use stall one cycle
-		2'b10: instr_ID = 32'h0000_0013;
-		default: instr_ID = instr;
-	endcase
+	if(flush) instr_ID = 32'h0000_0013;
+	else begin
+		case(instr_sel)
+			2'b00: instr_ID = instr;
+			2'b01: instr_ID = instr_reg;    // Load use stall one cycle
+			2'b10: instr_ID = 32'h0000_0013;
+			default: instr_ID = instr;
+		endcase
+	end
 end
 
 

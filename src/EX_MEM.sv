@@ -11,8 +11,6 @@ module EX_MEM(
 	input [1:0] mul_ctrl,
 	input [1:0] alu_mul_sel,
 	input [31:0] pc_EX,
-	input [31:0] rs1_data,
-	input [31:0] rs2_data,
 	input [31:0] rs1_data_reg,
 	input [31:0] rs2_data_reg,
 	input [31:0] fw_from_mem,
@@ -21,15 +19,15 @@ module EX_MEM(
 	input [4:0] rd_addr_ex,
 	input wb_en_ex,
 	input [2:0] is_load_ex,
-	input is_store_ex,
+	input [1:0] is_store_ex,
 	output logic [4:0] rd_addr_mem,
 	output logic wb_en_mem,
 	output logic [2:0] is_load_mem,
-	output logic is_store_mem,
 	output logic [31:0] src1_st1,    // For Store
 	output logic [31:0] src2_st1,    // For Store
 	output logic [31:0] alu_out_wire,
-	output logic [31:0] alu_out_mem
+	output logic [31:0] alu_out_mem,
+	output logic [31:0] DM_BWEB_mem
 	);
 
 logic [31:0] src1_st1, src1_st2;
@@ -45,12 +43,13 @@ always_comb begin
 	endcase
 end
 
+logic [31:0] src2_st1_tmp;
 always_comb begin
 	case(mux2_sel)
-		2'b00: src2_st1 = rs2_data_reg;
-		2'b01: src2_st1 = fw_from_mem;
-		2'b10: src2_st1 = fw_from_wb;
-		default: src2_st1 = rs2_data_reg;
+		2'b00: src2_st1_tmp = rs2_data_reg;
+		2'b01: src2_st1_tmp = fw_from_mem;
+		2'b10: src2_st1_tmp = fw_from_wb;
+		default: src2_st1_tmp = rs2_data_reg;
 	endcase
 end
 
@@ -63,7 +62,7 @@ end
 
 always_comb begin
 	case(mux4_sel)
-		1'b0: src2_st2 = src2_st1;
+		1'b0: src2_st2 = src2_st1_tmp;
 		1'b1: src2_st2 = imm; 
 	endcase
 end
@@ -73,7 +72,7 @@ ALU ALU_0(
 	.alu_ctrl(alu_ctrl),
 	.mul_ctrl(mul_ctrl),
 	.mul_in1(src1_st1),
-	.mul_in2(src2_st1),
+	.mul_in2(src2_st1_tmp),
 	.src1(src1_st2),
 	.src2(src2_st2),
 	.alu_out(alu_out_wire),
@@ -115,19 +114,65 @@ end
 
 always@(posedge clk, posedge rst) begin
 	if(rst) begin
-		is_store_mem <= 1'b0;
+		is_load_mem <= 3'b000;
 	end
 	else begin
-		is_store_mem <= is_store_ex;
+		is_load_mem <= is_load_ex;
 	end
 end
 
+ 
 always@(posedge clk, posedge rst) begin
 	if(rst) begin
 		is_load_mem <= 3'b000;
 	end
 	else begin
 		is_load_mem <= is_load_ex;
+	end
+end
+
+always_comb begin
+	if(is_store_ex!=2'b00) begin
+		if(alu_out_wire[1:0]==2'b00)begin
+			case(is_store_ex)
+				2'b01: DM_BWEB_mem = 32'h0000_0000; // SW
+				2'b10: DM_BWEB_mem = 32'hffff_0000; // SH
+				2'b11: DM_BWEB_mem = 32'hffff_ff00; // SB
+				default: DM_BWEB_mem = 32'hffff_ffff; // Error instruction
+			endcase
+			src2_st1 = src2_st1_tmp;
+		end
+		else if(alu_out_wire[1:0]==2'b01)begin
+			case(is_store_ex)
+				2'b01: DM_BWEB_mem = 32'h0000_00ff; // SW
+				2'b10: DM_BWEB_mem = 32'hff00_00ff; // SH
+				2'b11: DM_BWEB_mem = 32'hffff_00ff; // SB
+				default: DM_BWEB_mem = 32'hffff_ffff; // Error instruction
+			endcase
+			src2_st1 = src2_st1_tmp << 8;
+		end
+		else if(alu_out_wire[1:0]==2'b10) begin
+			case(is_store_ex)
+				2'b01: DM_BWEB_mem = 32'h0000_ffff; // SW
+				2'b10: DM_BWEB_mem = 32'h0000_ffff; // SH
+				2'b11: DM_BWEB_mem = 32'hff00_ffff; // SB
+				default: DM_BWEB_mem = 32'hffff_ffff; // Error instruction
+			endcase
+			src2_st1 = src2_st1_tmp << 16;
+		end
+		else begin  // 2'b11
+			case(is_store_ex)
+				2'b01: DM_BWEB_mem = 32'h00ff_ffff; // SW
+				2'b10: DM_BWEB_mem = 32'h00ff_ffff; // SH
+				2'b11: DM_BWEB_mem = 32'h00ff_ffff; // SB
+				default: DM_BWEB_mem = 32'hffff_ffff; // Error instruction
+			endcase
+			src2_st1 = src2_st1_tmp << 24;
+		end
+	end
+	else begin
+		DM_BWEB_mem = 32'hffff_ffff;
+		src2_st1 = src2_st1_tmp;
 	end
 end
 

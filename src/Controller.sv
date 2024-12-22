@@ -25,8 +25,7 @@ module Controller(
 	output logic [1:0] alu_mul_sel,
 	output logic DM_WEB_EX,
 	output logic [2:0] is_load_ex,
-	output logic is_store_ex, 
-	output logic [31:0] DM_BWEB,
+	output logic [1:0] is_store_ex, 
 	output logic wb_en,
 	output logic [1:0] instr_sel 
 	);
@@ -105,7 +104,7 @@ always_ff@(posedge clk or posedge rst) begin
 	end
 end
 
-always_ff@(posedge clk or posedge rst) begin
+always_ff@(posedge clk or posedge rst) begin  // PC or rs1
 	if(rst) begin
 		mux3_sel <= 1'b0;
 	end
@@ -114,7 +113,7 @@ always_ff@(posedge clk or posedge rst) begin
 	end
 end
 
-always_ff@(posedge clk or posedge rst) begin
+always_ff@(posedge clk or posedge rst) begin // imm or rs2
 	if(rst) begin
 		mux4_sel <= 1'b0;
 	end
@@ -152,7 +151,6 @@ logic delay;
 always_ff@(posedge clk, posedge rst) begin
 	if(rst) begin
 		DM_WEB_EX <= 1'b1;  // read
-		DM_BWEB <= 32'd0;
 		delay <= 1'b0;
 	end
 	else begin
@@ -208,30 +206,6 @@ always_ff@(posedge clk, posedge rst) begin
 	end		
 end
 
-// logic taken_reg;
-// always_ff@(posedge clk, posedge rst) begin
-// 	if(rst) begin
-// 		taken_reg <= 1'b0;
-// 	end
-// 	else begin
-// 		taken_reg <= taken;
-// 	end
-// end
-
-/*
-always_ff@(posedge clk, posedge rst) begin
-	if(rst) begin
-		instr_sel <= 2'b00;
-	end
-	else begin
-		if(pc_sel==2'b01) instr_sel <= 2'b10;
-		// else if() load-use
-		else instr_sel <= 2'b00;
-	end
-end
-*/
-
-
 always_comb begin
 	if(pc_sel==2'b01) instr_sel = 2'b10;
 	else if(load_use_reg) instr_sel = 2'b01; // When load use occur, still use previous instr.
@@ -250,10 +224,17 @@ end
 
 always_ff@(posedge clk, posedge rst) begin
 	if(rst) begin
-		is_store_ex <= 1'b0;
+		is_store_ex <= 2'b00;
 	end
 	else begin
-		is_store_ex <= (opcode==`Store)? 1'b1:1'b0;
+		if(opcode == `Store) begin
+			case(funct3)
+				3'b010: is_store_ex <= 2'b01;  // SW
+				3'b001: is_store_ex <= 2'b10;  // SH
+				3'b000: is_store_ex <= 2'b11;  // SB
+			endcase
+		end
+		else is_store_ex <= 2'b00;
 	end
 end
 

@@ -3,7 +3,6 @@ module MEM_WB(
 	input rst,
 	input wb_en_mem,
 	input [2:0] is_load_mem,
-	input is_store_mem,
 	input [4:0] rd_addr_mem,
 	input [31:0] alu_out_mem,
 	input [31:0] DM_OUT,

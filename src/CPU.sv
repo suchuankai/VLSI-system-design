@@ -85,7 +85,7 @@ logic DM_WEB_ID;
 logic [1:0] alu_mul_sel;
 logic [31:0] rs1_data, rs2_data;
 logic [2:0] is_load_ex; 
-logic is_store_ex;
+logic [1:0] is_store_ex;
 
 Controller controller_0(
 	.clk(clk),
@@ -113,7 +113,6 @@ Controller controller_0(
 	.DM_WEB_EX(DM_WEB),
 	.is_load_ex(is_load_ex),
 	.is_store_ex(is_store_ex),
-	.DM_BWEB(DM_BWEB),
 	.wb_en(wb_en),
 	.instr_sel(instr_sel)
 	);
@@ -174,8 +173,6 @@ EX_MEM EX_MEM_0(
 	.mul_ctrl(mul_ctrl), 
 	.alu_mul_sel(alu_mul_sel),
 	.pc_EX(pc_EX),
-	.rs1_data(rs1_data),
-	.rs2_data(rs2_data),
 	.rs1_data_reg(rs1_data_reg),
 	.rs2_data_reg(rs2_data_reg),
 	.fw_from_mem(alu_out_mem),
@@ -188,11 +185,11 @@ EX_MEM EX_MEM_0(
 	.rd_addr_mem(rd_addr_mem),
 	.wb_en_mem(wb_en_mem),
 	.is_load_mem(is_load_mem),
-	.is_store_mem(is_store_mem),
 	.src1_st1(src1_st1),
 	.src2_st1(src2_st1),
 	.alu_out_wire(alu_out_wire),
-	.alu_out_mem(alu_out_mem)
+	.alu_out_mem(alu_out_mem),
+	.DM_BWEB_mem(DM_BWEB)
     );
 
 
@@ -201,7 +198,6 @@ MEM_WB MEM_WB_0(
     .rst(rst),
     .wb_en_mem(wb_en_mem),
     .is_load_mem(is_load_mem),
-    .is_store_mem(is_store_mem),
     .rd_addr_mem(rd_addr_mem),
     .alu_out_mem(alu_out_mem),
     .DM_OUT(DM_OUT),

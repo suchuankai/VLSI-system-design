@@ -22,6 +22,7 @@ assign rs2_addr = instr[24:20];
 assign funct7   = instr[31:25];
 
 // Immediate generate
+// logic [31:0] imm_tmp;
 always_comb begin
 	case(opcode)
 		`Itype,
@@ -35,6 +36,11 @@ always_comb begin
 		default: imm = 32'd0; 
 	endcase
 end
+
+// always_comb begin
+// 	if(opcode==`Itype && (funct3==3'b001 || funct3==3'b101) ) imm = {27'd0 ,imm_tmp[4:0]};  // Shift instruction just use shamt bit
+// 	else imm = imm_tmp;
+// end
 
 
 endmodule

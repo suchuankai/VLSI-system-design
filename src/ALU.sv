@@ -19,7 +19,7 @@ always_comb begin
 		4'b0011: alu_out = ($unsigned(src1) < $unsigned(src2))? 1:0; // SLTU
 		4'b0100: alu_out = src1 ^ src2;          // XOR
 		4'b0101: alu_out = src1 >> (src2[4:0]);  // SRL
-		4'b1101: alu_out = ($signed(src1) >> (src2[4:0]));  // SRA
+		4'b1101: alu_out = ($signed(src1) >>> (src2[4:0]));  // SRA
 		4'b0110: alu_out = src1 | src2;          // OR
 		4'b0111: alu_out = src1 & src2;          // AND
 		4'b1001: alu_out = src2;                 // LUI
