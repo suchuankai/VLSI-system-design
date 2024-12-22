@@ -1,4 +1,5 @@
 `include "ALU.sv"
+`include "define.svh"
 
 module EX_MEM(
 	input clk,
@@ -20,6 +21,8 @@ module EX_MEM(
 	input wb_en_ex,
 	input [2:0] is_load_ex,
 	input [1:0] is_store_ex,
+	input [2:0] is_branch,
+	output logic taken,
 	output logic [4:0] rd_addr_mem,
 	output logic wb_en_mem,
 	output logic [2:0] is_load_mem,
@@ -78,6 +81,27 @@ ALU ALU_0(
 	.alu_out(alu_out_wire),
 	.mul_out(mul_out)
 	);
+
+// Branch 
+always_comb begin
+	if(is_branch!=3'b000) begin
+		case(is_branch[1:0])
+			2'b01: begin   // BEQ, BNE
+				taken = (src1_st1 == src2_st1_tmp) ^ is_branch[2];
+			end
+			2'b10: begin   // BLT, BGE
+				taken = ($signed(src1_st1) < $signed(src2_st1_tmp)) ^ is_branch[2];
+			end  
+			2'b11: begin   // BLTU、 BGEU
+				taken = ($unsigned(src1_st1) < $unsigned(src2_st1_tmp)) ^ is_branch[2];
+			end
+			default: begin
+				taken = 1'b0;
+			end
+		endcase
+	end
+	else taken = 1'b0;	
+end
 
 always@(posedge clk, posedge rst) begin
 	if(rst) begin

@@ -86,6 +86,8 @@ logic [1:0] alu_mul_sel;
 logic [31:0] rs1_data, rs2_data;
 logic [2:0] is_load_ex; 
 logic [1:0] is_store_ex;
+logic [2:0] is_branch;
+logic taken;
 
 Controller controller_0(
 	.clk(clk),
@@ -102,6 +104,7 @@ Controller controller_0(
 	.wb_en_mem(wb_en_mem),
 	.rd_addr_wb(rd_addr_wb),
 	.wb_en_wb(wb_en_wb),
+	.taken(taken),
 	.mux1_sel(mux1_sel),
 	.mux2_sel(mux2_sel),
 	.mux3_sel(mux3_sel),
@@ -113,6 +116,7 @@ Controller controller_0(
 	.DM_WEB_EX(DM_WEB),
 	.is_load_ex(is_load_ex),
 	.is_store_ex(is_store_ex),
+	.is_branch(is_branch),
 	.wb_en(wb_en),
 	.instr_sel(instr_sel)
 	);
@@ -182,6 +186,8 @@ EX_MEM EX_MEM_0(
 	.wb_en_ex(wb_en),
 	.is_load_ex(is_load_ex),
 	.is_store_ex(is_store_ex),
+	.is_branch(is_branch),
+	.taken(taken),
 	.rd_addr_mem(rd_addr_mem),
 	.wb_en_mem(wb_en_mem),
 	.is_load_mem(is_load_mem),

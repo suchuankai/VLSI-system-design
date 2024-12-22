@@ -15,6 +15,7 @@ module Controller(
 	input wb_en_mem,
 	input [4:0] rd_addr_wb,
 	input wb_en_wb,
+	input taken,                   // Signal to check branch instruction
 	output logic [1:0] mux1_sel,   // Select the src1 1st stage mux before ALU 
 	output logic [1:0] mux2_sel,   // Select the src2 1st stage mux before ALU 
 	output logic mux3_sel,   // Select the src1 2nd stage mux before ALU 
@@ -26,6 +27,7 @@ module Controller(
 	output logic DM_WEB_EX,
 	output logic [2:0] is_load_ex,
 	output logic [1:0] is_store_ex, 
+	output logic [2:0] is_branch,
 	output logic wb_en,
 	output logic [1:0] instr_sel 
 	);
@@ -181,30 +183,31 @@ always_ff@(posedge clk, posedge rst) begin
 end
 
 // Branch Compare
-logic taken;
-always_ff@(posedge clk, posedge rst) begin
-	if(rst) begin
-		taken <= 1'b0;
-	end
-	else begin
-		if(opcode==`Branch) begin
-			case(funct3[2:1])
-				2'b00: begin   // BEQ, BNE
-					taken <= (rs1_data == rs2_data) ^ funct3[0];
-				end
-				2'b10: begin   // BLT, BGE
-					taken <= ($signed(rs1_data) < $signed(rs2_data)) ^ funct3[0];
-				end  
-				2'b11: begin   // BLTU、 BGEU
-					taken <= ($unsigned(rs1_data) < $unsigned(rs2_data)) ^ funct3[0];
-				end
-				default: begin
-					taken <= 1'b0;
-				end
-			endcase
-		end
-	end		
-end
+// logic taken;
+// always_ff@(posedge clk, posedge rst) begin
+// 	if(rst) begin
+// 		taken <= 1'b0;
+// 	end
+// 	else begin
+// 		if(opcode==`Branch) begin
+// 			case(funct3[2:1])
+// 				2'b00: begin   // BEQ, BNE
+// 					taken <= (rs1_data == rs2_data) ^ funct3[0];
+// 				end
+// 				2'b10: begin   // BLT, BGE
+// 					taken <= ($signed(rs1_data) < $signed(rs2_data)) ^ funct3[0];
+// 				end  
+// 				2'b11: begin   // BLTU、 BGEU
+// 					taken <= ($unsigned(rs1_data) < $unsigned(rs2_data)) ^ funct3[0];
+// 				end
+// 				default: begin
+// 					taken <= 1'b0;
+// 				end
+// 			endcase
+// 		end
+// 		else taken <= 1'b0;
+// 	end		
+// end
 
 always_comb begin
 	if(pc_sel==2'b01) instr_sel = 2'b10;
@@ -257,10 +260,30 @@ always_ff@(posedge clk, posedge rst) begin
 	end
 end
 
-
-
-
-
+always_ff@(posedge clk, posedge rst) begin
+	if(rst) begin
+		is_branch <= 3'b000;
+	end
+	else begin
+		if(opcode == `Branch) begin
+			case(funct3[2:1])
+				2'b00: begin   // BEQ, BNE
+					is_branch <= {funct3[0], 2'b01};
+				end
+				2'b10: begin   // BLT, BGE
+					is_branch <= {funct3[0], 2'b10};
+				end  
+				2'b11: begin   // BLTU、 BGEU
+					is_branch <= {funct3[0], 2'b11};
+				end
+				default: begin
+					is_branch <= {funct3[0], 2'b00};
+				end
+			endcase
+		end
+		else is_branch <= 3'b000;
+	end
+end
 
 
 endmodule
