@@ -17,3 +17,9 @@
 `define AUIPC 7'b0010111
 // LUI
 `define LUI 7'b0110111
+// FLW
+`define FLW 7'b0000111
+// FSW
+`define FSW 7'b0100111
+// FALU
+`define FALU 7'b1010011

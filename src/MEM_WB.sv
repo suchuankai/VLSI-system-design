@@ -2,11 +2,13 @@ module MEM_WB(
 	input clk, 
 	input rst,
 	input wb_en_mem,
+	input float_wb_en_mem,
 	input [2:0] is_load_mem,
 	input [4:0] rd_addr_mem,
 	input [31:0] alu_out_mem,
 	input [31:0] DM_OUT,
 	output logic wb_en_wb,
+	output logic float_wb_en_wb,
 	output logic [4:0] rd_addr_wb,
 	output logic [31:0] alu_out_wb
 	);
@@ -22,10 +24,12 @@ end
 
 always_ff@(posedge clk, posedge rst) begin
 	if(rst) begin
-		wb_en_wb <= 5'd0;
+		wb_en_wb <= 1'b0;
+		float_wb_en_wb <= 1'b0;
 	end
 	else begin
 		wb_en_wb <= wb_en_mem;
+		float_wb_en_wb <= float_wb_en_mem;
 	end
 end
 

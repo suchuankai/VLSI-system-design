@@ -19,12 +19,14 @@ module EX_MEM(
 	input [31:0] imm,
 	input [4:0] rd_addr_ex,
 	input wb_en_ex,
+	input float_wb_en_ex,
 	input [2:0] is_load_ex,
 	input [1:0] is_store_ex,
 	input [2:0] is_branch,
 	output logic taken,
 	output logic [4:0] rd_addr_mem,
 	output logic wb_en_mem,
+	output logic float_wb_en_mem,
 	output logic [2:0] is_load_mem,
 	output logic [31:0] src1_st1,    // For Store
 	output logic [31:0] src2_st1,    // For Store
@@ -130,9 +132,11 @@ end
 always@(posedge clk, posedge rst) begin
 	if(rst) begin
 		wb_en_mem <= 1'b0;
+		float_wb_en_mem <= 1'b0;
 	end
 	else begin
 		wb_en_mem <= wb_en_ex;
+		float_wb_en_mem <= float_wb_en_ex;
 	end
 end
 

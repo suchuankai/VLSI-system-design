@@ -29,7 +29,8 @@ module Controller(
 	output logic [1:0] is_store_ex, 
 	output logic [2:0] is_branch,
 	output logic wb_en,
-	output logic [1:0] instr_sel 
+	output logic [1:0] instr_sel, 
+	output logic float_wb_en_ex
 	);
 
 
@@ -89,7 +90,6 @@ always_ff@(posedge clk or posedge rst) begin
 	else begin
 		if(rs1_addr==rd_addr_ex && rd_addr_ex!=5'd0 && wb_en) mux1_sel <= 2'b01;
 		else if(rs1_addr==rd_addr_mem && rd_addr_mem!=5'd0 && wb_en_mem) mux1_sel <= 2'b10;
-		else if(rs1_addr==rd_addr_wb && rd_addr_wb!=5'd0 && wb_en_wb) mux1_sel <= 2'b11;
 		else mux1_sel <= 2'b00;
 	end
 end
@@ -101,7 +101,6 @@ always_ff@(posedge clk or posedge rst) begin
 	else begin
 		if(rs2_addr==rd_addr_ex && rd_addr_ex!=5'd0 && wb_en) mux2_sel <= 2'b01;
 		else if(rs2_addr==rd_addr_mem && rd_addr_mem!=5'd0 && wb_en_mem) mux2_sel <= 2'b10;
-		else if(rs2_addr==rd_addr_wb && rd_addr_wb!=5'd0 && wb_en_wb) mux2_sel <= 2'b11;
 		else mux2_sel <= 2'b00;
 	end
 end
@@ -158,7 +157,7 @@ always_ff@(posedge clk, posedge rst) begin
 	else begin
 		delay <= 1'b1;
 		if(delay)
-			DM_WEB_EX <= (opcode==`Store && !load_use)? 0:1;
+			DM_WEB_EX <= ((opcode==`Store || opcode==`FSW) && !load_use)? 0:1;
 	end
 end
 
@@ -168,7 +167,7 @@ always_ff@(posedge clk, posedge rst) begin
 		wb_en <= 1'b0;
 	end
 	else begin
-		wb_en <= (opcode==`Branch || opcode==`Store || pc_sel==2'b01 || load_use)? 0:1;
+		wb_en <= (opcode==`Branch || opcode==`Store || opcode==`FSW || opcode==`FLW || pc_sel==2'b01 || load_use)? 0:1;
 	end
 end
 
@@ -181,33 +180,6 @@ always_ff@(posedge clk, posedge rst) begin
 		funct3_reg <= funct3;
 	end
 end
-
-// Branch Compare
-// logic taken;
-// always_ff@(posedge clk, posedge rst) begin
-// 	if(rst) begin
-// 		taken <= 1'b0;
-// 	end
-// 	else begin
-// 		if(opcode==`Branch) begin
-// 			case(funct3[2:1])
-// 				2'b00: begin   // BEQ, BNE
-// 					taken <= (rs1_data == rs2_data) ^ funct3[0];
-// 				end
-// 				2'b10: begin   // BLT, BGE
-// 					taken <= ($signed(rs1_data) < $signed(rs2_data)) ^ funct3[0];
-// 				end  
-// 				2'b11: begin   // BLTU、 BGEU
-// 					taken <= ($unsigned(rs1_data) < $unsigned(rs2_data)) ^ funct3[0];
-// 				end
-// 				default: begin
-// 					taken <= 1'b0;
-// 				end
-// 			endcase
-// 		end
-// 		else taken <= 1'b0;
-// 	end		
-// end
 
 always_comb begin
 	if(pc_sel==2'b01) instr_sel = 2'b10;
@@ -230,7 +202,7 @@ always_ff@(posedge clk, posedge rst) begin
 		is_store_ex <= 2'b00;
 	end
 	else begin
-		if(opcode == `Store) begin
+		if(opcode == `Store || opcode == `FSW) begin
 			case(funct3)
 				3'b010: is_store_ex <= 2'b01;  // SW
 				3'b001: is_store_ex <= 2'b10;  // SH
@@ -246,11 +218,11 @@ always_ff@(posedge clk, posedge rst) begin
 		is_load_ex <= 3'b000;
 	end
 	else begin
-		if(opcode==`Load) begin
+		if(opcode==`Load || opcode==`FLW) begin
 			case(funct3)
 				3'b000: is_load_ex <= 3'b001;  // LB
 				3'b001: is_load_ex <= 3'b010;  // LH
-				3'b010: is_load_ex <= 3'b011;  // LW
+				3'b010: is_load_ex <= 3'b011;  // LW, FLW
 				3'b100: is_load_ex <= 3'b100;  // LHU
 				3'b101: is_load_ex <= 3'b101;  // LBU
 				default: is_load_ex <= 3'b000;
@@ -285,5 +257,14 @@ always_ff@(posedge clk, posedge rst) begin
 	end
 end
 
+// Floating Register control
+always_ff@(posedge clk, posedge rst) begin
+	if(rst) begin
+		float_wb_en_ex <= 1'b0;
+	end
+	else begin
+		float_wb_en_ex <= (opcode==`FLW)? 1'b1:1'b0;
+	end
+end
 
 endmodule

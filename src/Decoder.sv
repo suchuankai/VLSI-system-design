@@ -27,7 +27,9 @@ always_comb begin
 	case(opcode)
 		`Itype,
 		`Load, 
+		`FLW,
 		`JALR  : imm = {{20{instr[31]}}, instr[31:20]};  // Notice shift command use "shamt"
+		`FSW,
 		`Store : imm = {{20{instr[31]}}, instr[31:25], instr[11:7]};
 		`Branch: imm = {{20{instr[31]}}, instr[7], instr[30:25], instr[11:8], 1'b0};
 		`AUIPC,
