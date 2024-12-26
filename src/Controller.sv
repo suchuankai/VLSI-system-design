@@ -119,7 +119,7 @@ always_ff@(posedge clk or posedge rst) begin // imm or rs2
 		mux4_sel <= 1'b0;
 	end
 	else begin
-		mux4_sel <= (opcode==`Rtype)? 1'b0:1'b1;
+		mux4_sel <= (opcode==`Rtype || opcode==`FALU)? 1'b0:1'b1;
 	end
 end
 

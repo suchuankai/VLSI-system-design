@@ -1,4 +1,5 @@
 `include "ALU.sv"
+`include "FPU.sv"
 `include "define.svh"
 
 module EX_MEM(
@@ -84,6 +85,15 @@ ALU ALU_0(
 	.mul_out(mul_out)
 	);
 
+
+logic [31:0] fpu_out;
+FPU FPU_0(
+	.FA(src1_st2),
+	.FB(src2_st2),
+	.add_sub(1'b0),
+	.fpu_out(fpu_out)
+	);
+
 // Branch 
 always_comb begin
 	if(is_branch!=3'b000) begin
@@ -140,16 +150,6 @@ always@(posedge clk, posedge rst) begin
 	end
 end
 
-always@(posedge clk, posedge rst) begin
-	if(rst) begin
-		is_load_mem <= 3'b000;
-	end
-	else begin
-		is_load_mem <= is_load_ex;
-	end
-end
-
- 
 always@(posedge clk, posedge rst) begin
 	if(rst) begin
 		is_load_mem <= 3'b000;
