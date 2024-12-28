@@ -21,6 +21,7 @@ module EX_MEM(
 	input [4:0] rd_addr_ex,
 	input wb_en_ex,
 	input float_wb_en_ex,
+	input floatAddSub,
 	input [2:0] is_load_ex,
 	input [1:0] is_store_ex,
 	input [2:0] is_branch,
@@ -90,7 +91,7 @@ logic [31:0] fpu_out;
 FPU FPU_0(
 	.FA(src1_st2),
 	.FB(src2_st2),
-	.add_sub(1'b0),
+	.add_sub(floatAddSub),
 	.fpu_out(fpu_out)
 	);
 
@@ -120,12 +121,15 @@ always@(posedge clk, posedge rst) begin
 		alu_out_mem <= 32'd0;
 	end
 	else begin
-		case(alu_mul_sel)
-			2'b00: alu_out_mem <= alu_out_wire;
-			2'b01: alu_out_mem <= mul_out;
-			2'b10: alu_out_mem <= pc_EX + 4;   // For jalr
-			default: alu_out_mem <= alu_out_wire;
-		endcase
+		if(float_wb_en_ex) alu_out_mem <= fpu_out;
+		else begin
+			case(alu_mul_sel)
+				2'b00: alu_out_mem <= alu_out_wire;
+				2'b01: alu_out_mem <= mul_out;
+				2'b10: alu_out_mem <= pc_EX + 4;   // For jalr
+				default: alu_out_mem <= alu_out_wire;
+			endcase
+		end
 		// alu_out_mem <= (alu_mul_sel)? mul_out : alu_out_wire;
 	end
 end

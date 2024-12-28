@@ -15,6 +15,8 @@ module Controller(
 	input wb_en_mem,
 	input [4:0] rd_addr_wb,
 	input wb_en_wb,
+	input float_wb_en_mem,
+	input float_wb_en_wb,
 	input taken,                   // Signal to check branch instruction
 	output logic [1:0] mux1_sel,   // Select the src1 1st stage mux before ALU 
 	output logic [1:0] mux2_sel,   // Select the src2 1st stage mux before ALU 
@@ -30,7 +32,8 @@ module Controller(
 	output logic [2:0] is_branch,
 	output logic wb_en,
 	output logic [1:0] instr_sel, 
-	output logic float_wb_en_ex
+	output logic float_wb_en_ex,
+	output logic floatAddSub
 	);
 
 
@@ -88,8 +91,8 @@ always_ff@(posedge clk or posedge rst) begin
 		mux1_sel <= 2'b00;
 	end
 	else begin
-		if(rs1_addr==rd_addr_ex && rd_addr_ex!=5'd0 && wb_en) mux1_sel <= 2'b01;
-		else if(rs1_addr==rd_addr_mem && rd_addr_mem!=5'd0 && wb_en_mem) mux1_sel <= 2'b10;
+		if(rs1_addr==rd_addr_ex && rd_addr_ex!=5'd0 && (wb_en || float_wb_en_ex)) mux1_sel <= 2'b01;
+		else if(rs1_addr==rd_addr_mem && rd_addr_mem!=5'd0 && (wb_en_mem || float_wb_en_mem)) mux1_sel <= 2'b10;
 		else mux1_sel <= 2'b00;
 	end
 end
@@ -99,8 +102,8 @@ always_ff@(posedge clk or posedge rst) begin
 		mux2_sel <= 2'b00;
 	end
 	else begin
-		if(rs2_addr==rd_addr_ex && rd_addr_ex!=5'd0 && wb_en) mux2_sel <= 2'b01;
-		else if(rs2_addr==rd_addr_mem && rd_addr_mem!=5'd0 && wb_en_mem) mux2_sel <= 2'b10;
+		if(rs2_addr==rd_addr_ex && rd_addr_ex!=5'd0 && (wb_en || float_wb_en_ex)) mux2_sel <= 2'b01;
+		else if(rs2_addr==rd_addr_mem && rd_addr_mem!=5'd0 && (wb_en_mem || float_wb_en_mem)) mux2_sel <= 2'b10;
 		else mux2_sel <= 2'b00;
 	end
 end
@@ -136,7 +139,7 @@ always_ff@(posedge clk, posedge rst) begin
 	end
 end
 
-assign load_use = ( opcode_reg==`Load && ((rd_addr_ex==rs1_addr) || (rd_addr_ex==rs2_addr)) );
+assign load_use = ( (opcode_reg==`Load || opcode_reg==`FLW) && ((rd_addr_ex==rs1_addr) || (rd_addr_ex==rs2_addr)) );
 
 always_ff@(posedge clk, posedge rst) begin
 	if(rst) begin
@@ -192,7 +195,8 @@ always_comb begin
 		`JAL: pc_sel = 2'b01; // ALU out  
 		`JALR: pc_sel = 2'b01; // ALU out  
 		`Branch: pc_sel = (taken==1'b1)? 2'b01 : 2'b00; // ALU out
-		`Load: pc_sel = ((rd_addr_ex==rs1_addr) || (rd_addr_ex==rs2_addr))? 2'b10:2'b00;
+		`Load,
+		`FLW: pc_sel = ((rd_addr_ex==rs1_addr) || (rd_addr_ex==rs2_addr))? 2'b10:2'b00;
 		default: pc_sel = 2'b00;
 	endcase
 end
@@ -263,7 +267,17 @@ always_ff@(posedge clk, posedge rst) begin
 		float_wb_en_ex <= 1'b0;
 	end
 	else begin
-		float_wb_en_ex <= (opcode==`FLW)? 1'b1:1'b0;
+		if(load_use) float_wb_en_ex <= 1'b0;
+		else float_wb_en_ex <= (opcode==`FLW || opcode==`FALU)? 1'b1:1'b0;
+	end
+end
+
+always_ff@(posedge clk, posedge rst) begin
+	if(rst) begin
+		floatAddSub <= 1'b0;
+	end
+	else begin
+		floatAddSub <= (funct7[2])? 1'b1:1'b0;  // funct5[0]
 	end
 end
 

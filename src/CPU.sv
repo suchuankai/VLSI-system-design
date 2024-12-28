@@ -90,6 +90,10 @@ logic [1:0] is_store_ex;
 logic [2:0] is_branch;
 logic taken;
 logic float_wb_en_ex;
+logic floatAddSub;
+logic float_wb_en_mem;
+logic float_wb_en_wb;
+
 
 Controller controller_0(
 	.clk(clk),
@@ -106,6 +110,8 @@ Controller controller_0(
 	.wb_en_mem(wb_en_mem),
 	.rd_addr_wb(rd_addr_wb),
 	.wb_en_wb(wb_en_wb),
+	.float_wb_en_mem(float_wb_en_mem),
+	.float_wb_en_wb(float_wb_en_wb),
 	.taken(taken),
 	.mux1_sel(mux1_sel),
 	.mux2_sel(mux2_sel),
@@ -121,7 +127,8 @@ Controller controller_0(
 	.is_branch(is_branch),
 	.wb_en(wb_en),
 	.float_wb_en_ex(float_wb_en_ex),
-	.instr_sel(instr_sel)
+	.instr_sel(instr_sel),
+	.floatAddSub(floatAddSub)
 	);
 
 
@@ -139,7 +146,7 @@ Register reg_0(
 	.rs2_data(rs2_data)
 	);
 
-logic float_wb_en_wb;
+
 logic [31:0] float_rs1_data, float_rs2_data;
 
 FloatRegister FloatRegister_0(
@@ -187,7 +194,7 @@ logic [31:0] alu_out_mem;
 logic DM_WEB_MEM;
 logic [2:0] is_load_mem;
 logic is_store_mem;
-logic float_wb_en_mem;
+
 
 EX_MEM EX_MEM_0(
 	.clk(clk),
@@ -208,6 +215,7 @@ EX_MEM EX_MEM_0(
 	.rd_addr_ex(rd_addr_ex),
 	.wb_en_ex(wb_en),
 	.float_wb_en_ex(float_wb_en_ex),
+	.floatAddSub(floatAddSub),
 	.is_load_ex(is_load_ex),
 	.is_store_ex(is_store_ex),
 	.is_branch(is_branch),

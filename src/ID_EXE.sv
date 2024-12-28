@@ -48,7 +48,7 @@ always@(posedge clk or posedge rst) begin
 	end
 	else begin
 		if(rs1_addr==rd_addr_wb && rd_addr_wb!=5'd0 && (wb_en_wb || float_wb_en_wb) )  rs1_data_reg <= alu_out_wb;
-		else if(opcode==`FSW || opcode==`FALU) rs1_data_reg <= float_rs1_data;
+		else if(opcode==`FALU) rs1_data_reg <= float_rs1_data;  // opcode==`FSW || 
 		else rs1_data_reg <= rs1_data;
 	end
 end
