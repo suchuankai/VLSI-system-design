@@ -1,4 +1,5 @@
 `include "PC.sv"
+`include "CSR.sv"
 `include "IF_ID.sv"
 `include "ID_EXE.sv"
 `include "EX_MEM.sv"
@@ -71,6 +72,18 @@ Decoder decode_0(
 	.rs2_addr(rs2_wire),
 	.funct7(funct7_wire),
 	.imm(imm_wire)
+	);
+
+logic isCSR;
+logic [31:0] CSR_out;
+
+CSR CSR_0(
+	.clk(clk),
+	.rst(rst),
+	.instr(instr),
+	.pc_sel(pc_sel),
+	.isCSR(isCSR),
+	.CSR_out(CSR_out)
 	);
 
 // Control signals
@@ -204,7 +217,9 @@ EX_MEM EX_MEM_0(
 	.mux3_sel(mux3_sel), 
 	.mux4_sel(mux4_sel),
 	.alu_ctrl(alu_ctrl),
-	.mul_ctrl(mul_ctrl), 
+	.mul_ctrl(mul_ctrl),
+	.isCSR(isCSR), 
+	.CSR_out(CSR_out),
 	.alu_mul_sel(alu_mul_sel),
 	.pc_EX(pc_EX),
 	.rs1_data_reg(rs1_data_reg),

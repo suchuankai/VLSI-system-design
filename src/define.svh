@@ -23,3 +23,5 @@
 `define FSW 7'b0100111
 // FALU
 `define FALU 7'b1010011
+// CSR
+`define CSR 7'b1110011

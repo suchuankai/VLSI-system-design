@@ -11,6 +11,8 @@ module EX_MEM(
 	input mux4_sel, 
 	input [3:0] alu_ctrl,
 	input [1:0] mul_ctrl,
+	input isCSR,
+	input [31:0] CSR_out,
 	input [1:0] alu_mul_sel,
 	input [31:0] pc_EX,
 	input [31:0] rs1_data_reg,
@@ -121,7 +123,8 @@ always@(posedge clk, posedge rst) begin
 		alu_out_mem <= 32'd0;
 	end
 	else begin
-		if(float_wb_en_ex) alu_out_mem <= fpu_out;
+		if(isCSR) alu_out_mem <= CSR_out;
+		else if(float_wb_en_ex) alu_out_mem <= fpu_out;
 		else begin
 			case(alu_mul_sel)
 				2'b00: alu_out_mem <= alu_out_wire;

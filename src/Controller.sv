@@ -170,7 +170,7 @@ always_ff@(posedge clk, posedge rst) begin
 		wb_en <= 1'b0;
 	end
 	else begin
-		wb_en <= (opcode==`Branch || opcode==`Store || opcode==`FSW || opcode==`FLW || pc_sel==2'b01 || load_use)? 0:1;
+		wb_en <= (opcode==`Branch || opcode==`Store || opcode==`FSW || opcode==`FLW ||  opcode==`FALU || pc_sel==2'b01 || load_use)? 0:1;
 	end
 end
 
