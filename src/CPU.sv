@@ -20,7 +20,8 @@ module CPU(
 	output DM_WEB,
 	output [31:0] DM_BWEB,
 	output [13:0] DM_A,
-	output [31:0] DM_IN 
+	output [31:0] DM_IN, 
+	output DM_CEB
 	);
 
 logic [31:0] src1_st1, src2_st1;
@@ -43,21 +44,24 @@ PC PC_0(
 
 logic [31:0] pc_ID;
 logic [31:0] instr_ID;
+logic load_use;
+
 IF_ID IF_ID_0(
 	.clk(clk),
 	.rst(rst),
 	.pc(pc_reg),
 	.instr(instr),
 	.instr_sel(instr_sel),
+	.load_use(load_use),
 	.pc_ID(pc_ID),
 	.instr_ID(instr_ID)
 	);
 
 logic [6:0] opcode_wire;
-logic [4:0] rd_wire;
+logic [5:0] rd_wire;
 logic [2:0] funct3_wire;
-logic [4:0] rs1_wire;
-logic [4:0] rs2_wire;
+logic [5:0] rs1_wire;
+logic [5:0] rs2_wire;
 logic [6:0] funct7_wire;
 logic [31:0] imm_wire;
 
@@ -91,10 +95,11 @@ logic [3:0] alu_ctrl;
 logic [1:0] mul_ctrl;
 logic wb_en, wb_en_mem, wb_en_wb;
 logic [1:0] mux1_sel, mux2_sel;
+logic reg1_sel, reg2_sel;
 logic mux3_sel, mux3_sel;
-logic [4:0] rd_addr_mem;
-logic [4:0] rd_addr_ex;
-logic [4:0] rd_addr_wb;
+logic [5:0] rd_addr_mem;
+logic [5:0] rd_addr_ex;
+logic [5:0] rd_addr_wb;
 logic DM_WEB_ID;
 logic [1:0] alu_mul_sel;
 logic [31:0] rs1_data, rs2_data;
@@ -106,7 +111,9 @@ logic float_wb_en_ex;
 logic floatAddSub;
 logic float_wb_en_mem;
 logic float_wb_en_wb;
-
+logic floatOpEx;
+logic floatOpMem;
+logic floatOpWb;
 
 Controller controller_0(
 	.clk(clk),
@@ -125,7 +132,11 @@ Controller controller_0(
 	.wb_en_wb(wb_en_wb),
 	.float_wb_en_mem(float_wb_en_mem),
 	.float_wb_en_wb(float_wb_en_wb),
+	.floatOpMem(floatOpMem),
+	.floatOpWb(floatOpWb),
 	.taken(taken),
+	.reg1_sel(reg1_sel),
+	.reg2_sel(reg2_sel),
 	.mux1_sel(mux1_sel),
 	.mux2_sel(mux2_sel),
 	.mux3_sel(mux3_sel),
@@ -141,7 +152,10 @@ Controller controller_0(
 	.wb_en(wb_en),
 	.float_wb_en_ex(float_wb_en_ex),
 	.instr_sel(instr_sel),
-	.floatAddSub(floatAddSub)
+	.floatAddSub(floatAddSub),
+	.DM_CEB(DM_CEB),
+	.load_use(load_use),
+	.floatOpEx(floatOpEx)
 	);
 
 
@@ -183,6 +197,8 @@ ID_EXE ID_EXE_0(
     .clk(clk),
     .rst(rst),
     .opcode(opcode_wire),
+    .reg1_sel(reg1_sel),
+    .reg2_sel(reg2_sel),
     .pc_ID(pc_ID),
     .imm_wire(imm_wire),
     .rs1_addr(rs1_wire),
@@ -231,6 +247,7 @@ EX_MEM EX_MEM_0(
 	.wb_en_ex(wb_en),
 	.float_wb_en_ex(float_wb_en_ex),
 	.floatAddSub(floatAddSub),
+	.floatOpEx(floatOpEx),
 	.is_load_ex(is_load_ex),
 	.is_store_ex(is_store_ex),
 	.is_branch(is_branch),
@@ -238,6 +255,7 @@ EX_MEM EX_MEM_0(
 	.rd_addr_mem(rd_addr_mem),
 	.wb_en_mem(wb_en_mem),
 	.float_wb_en_mem(float_wb_en_mem),
+	.floatOpMem(floatOpMem),
 	.is_load_mem(is_load_mem),
 	.src1_st1(src1_st1),
 	.src2_st1(src2_st1),
@@ -252,6 +270,7 @@ MEM_WB MEM_WB_0(
     .rst(rst),
     .wb_en_mem(wb_en_mem),
     .float_wb_en_mem(float_wb_en_mem),
+    .floatOpMem(floatOpMem),
     .is_load_mem(is_load_mem),
     .rd_addr_mem(rd_addr_mem),
     .alu_out_mem(alu_out_mem),
@@ -259,6 +278,7 @@ MEM_WB MEM_WB_0(
     .alu_out_wb(alu_out_wb),
     .wb_en_wb(wb_en_wb),
     .float_wb_en_wb(float_wb_en_wb),
+    .floatOpWb(floatOpWb),
     .rd_addr_wb(rd_addr_wb)  // Write back register address
     );
 

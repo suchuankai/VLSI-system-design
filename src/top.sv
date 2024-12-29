@@ -16,6 +16,7 @@ logic [31:0] DM_BWEB;
 logic [13:0] DM_A; 
 logic [31:0] DM_IN;
 logic [31:0] DM_OUT;
+logic DM_CEB;
 
 CPU CPU_0(
 	.clk(clk),
@@ -28,7 +29,8 @@ CPU CPU_0(
     .DM_BWEB(DM_BWEB), 
     .DM_A(DM_A), 
     .DM_IN(DM_IN), 
-    .DM_OUT(DM_OUT)
+    .DM_OUT(DM_OUT),
+    .DM_CEB(DM_CEB)
     );
 
 SRAM_wrapper IM1(
@@ -49,7 +51,7 @@ logic [13:0] addr;     // Data memory Read/Write address
 SRAM_wrapper DM1(
 	.CLK(clk), 
 	.RST(rst), 
-	.CEB(1'b0),    // Chip enable (active low)
+	.CEB(DM_CEB),    // Chip enable (active low)
 	.WEB(DM_WEB),    // Read->active high | Write->active low 
 	.BWEB(DM_BWEB), 
 	.A(DM_A), 

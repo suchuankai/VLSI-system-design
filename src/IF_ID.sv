@@ -4,6 +4,7 @@ module IF_ID(
 	input [31:0] pc, 
 	input [31:0] instr,
 	input [1:0] instr_sel,
+	input load_use,
 	output logic [31:0] pc_ID,
 	output logic [31:0] instr_ID
 );
@@ -13,7 +14,7 @@ always@(posedge clk, posedge rst) begin
 		pc_ID <= 32'd0;
 	end
 	else begin
-		pc_ID <= pc;
+		if(!load_use) pc_ID <= pc;
 	end
 end
 

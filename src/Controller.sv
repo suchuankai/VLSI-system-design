@@ -6,18 +6,22 @@ module Controller(
 	input [6:0] opcode,
 	input [2:0] funct3,
 	input [6:0] funct7,
-	input [4:0] rs1_addr,
-	input [4:0] rs2_addr,
+	input [5:0] rs1_addr,
+	input [5:0] rs2_addr,
 	input [31:0] rs1_data,
 	input [31:0] rs2_data,
-	input [4:0] rd_addr_ex,
-	input [4:0] rd_addr_mem,
+	input [5:0] rd_addr_ex,
+	input [5:0] rd_addr_mem,
 	input wb_en_mem,
-	input [4:0] rd_addr_wb,
+	input [5:0] rd_addr_wb,
 	input wb_en_wb,
 	input float_wb_en_mem,
 	input float_wb_en_wb,
+	input floatOpMem,
+	input floatOpWb,
 	input taken,                   // Signal to check branch instruction
+	output logic reg1_sel,         // Select the data into register
+	output logic reg2_sel,         // Select the data into register
 	output logic [1:0] mux1_sel,   // Select the src1 1st stage mux before ALU 
 	output logic [1:0] mux2_sel,   // Select the src2 1st stage mux before ALU 
 	output logic mux3_sel,   // Select the src1 2nd stage mux before ALU 
@@ -33,8 +37,35 @@ module Controller(
 	output logic wb_en,
 	output logic [1:0] instr_sel, 
 	output logic float_wb_en_ex,
-	output logic floatAddSub
+	output logic floatAddSub,
+	output logic DM_CEB,
+	output load_use,
+	output logic floatOpEx
 	);
+
+logic delay2;
+always_ff@(posedge clk or posedge rst) begin
+	if(rst) begin
+		delay2 <= 1'b0;
+		DM_CEB <= 1'b1;
+	end
+	else begin
+		delay2 <= 1'b1;
+		if(delay2)
+			DM_CEB <= (opcode==`Load || opcode==`FLW || opcode==`Store || opcode==`FSW)? 1'b0 : 1'b1;
+	end
+end
+
+logic floatOpID;
+assign floatOpID = (opcode==`FALU || opcode==`FLW || opcode==`FSW)? 1'b1 : 1'b0;
+always_ff@(posedge clk or posedge rst) begin
+	if(rst) begin
+		floatOpEx <= 1'b0;
+	end
+	else begin
+		floatOpEx <= floatOpID;
+	end
+end
 
 
 // alu_ctrl signal needs opcode, func3, func7 to define
@@ -86,12 +117,17 @@ always_ff@(posedge clk or posedge rst) begin
 end
 
 // ALU dataflow
+always_comb begin
+ 	reg1_sel = ( (rs1_addr==rd_addr_wb) && (rd_addr_wb!=5'd0) && (wb_en_wb || float_wb_en_wb) );
+ 	reg2_sel = ( (rs2_addr==rd_addr_wb) && (rd_addr_wb!=5'd0) && (wb_en_wb || float_wb_en_wb) );
+end
+
 always_ff@(posedge clk or posedge rst) begin
 	if(rst) begin
 		mux1_sel <= 2'b00;
 	end
 	else begin
-		if(rs1_addr==rd_addr_ex && rd_addr_ex!=5'd0 && (wb_en || float_wb_en_ex)) mux1_sel <= 2'b01;
+		if(rs1_addr==rd_addr_ex && rd_addr_ex!=5'd0 && (wb_en || float_wb_en_ex) ) mux1_sel <= 2'b01;
 		else if(rs1_addr==rd_addr_mem && rd_addr_mem!=5'd0 && (wb_en_mem || float_wb_en_mem)) mux1_sel <= 2'b10;
 		else mux1_sel <= 2'b00;
 	end
@@ -102,8 +138,8 @@ always_ff@(posedge clk or posedge rst) begin
 		mux2_sel <= 2'b00;
 	end
 	else begin
-		if(rs2_addr==rd_addr_ex && rd_addr_ex!=5'd0 && (wb_en || float_wb_en_ex)) mux2_sel <= 2'b01;
-		else if(rs2_addr==rd_addr_mem && rd_addr_mem!=5'd0 && (wb_en_mem || float_wb_en_mem)) mux2_sel <= 2'b10;
+		if(rs2_addr==rd_addr_ex && rd_addr_ex!=5'd0 && (wb_en || float_wb_en_ex) ) mux2_sel <= 2'b01;
+		else if(rs2_addr==rd_addr_mem && rd_addr_mem!=5'd0 && (wb_en_mem || float_wb_en_mem) ) mux2_sel <= 2'b10;
 		else mux2_sel <= 2'b00;
 	end
 end
@@ -128,7 +164,7 @@ end
 
 // Load use stall control
 logic [6:0] opcode_reg;
-logic load_use, load_use_reg;
+logic load_use_reg;
 
 always_ff@(posedge clk, posedge rst) begin
 	if(rst) begin

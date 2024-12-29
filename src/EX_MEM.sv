@@ -20,17 +20,19 @@ module EX_MEM(
 	input [31:0] fw_from_mem,
 	input [31:0] fw_from_wb,
 	input [31:0] imm,
-	input [4:0] rd_addr_ex,
+	input [5:0] rd_addr_ex,
 	input wb_en_ex,
 	input float_wb_en_ex,
 	input floatAddSub,
+	input floatOpEx,
 	input [2:0] is_load_ex,
 	input [1:0] is_store_ex,
 	input [2:0] is_branch,
 	output logic taken,
-	output logic [4:0] rd_addr_mem,
+	output logic [5:0] rd_addr_mem,
 	output logic wb_en_mem,
 	output logic float_wb_en_mem,
+	output logic floatOpMem,
 	output logic [2:0] is_load_mem,
 	output logic [31:0] src1_st1,    // For Store
 	output logic [31:0] src2_st1,    // For Store
@@ -130,7 +132,7 @@ always@(posedge clk, posedge rst) begin
 				2'b00: alu_out_mem <= alu_out_wire;
 				2'b01: alu_out_mem <= mul_out;
 				2'b10: alu_out_mem <= pc_EX + 4;   // For jalr
-				default: alu_out_mem <= alu_out_wire;
+				default: alu_out_mem <= alu_out_mem;  // Load use
 			endcase
 		end
 		// alu_out_mem <= (alu_mul_sel)? mul_out : alu_out_wire;
@@ -163,6 +165,15 @@ always@(posedge clk, posedge rst) begin
 	end
 	else begin
 		is_load_mem <= is_load_ex;
+	end
+end
+
+always@(posedge clk, posedge rst) begin
+	if(rst) begin
+		floatOpMem <= 1'b0;
+	end
+	else begin
+		floatOpMem <= floatOpEx;
 	end
 end
 
