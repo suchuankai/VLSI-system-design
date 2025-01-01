@@ -17,9 +17,9 @@ BEQ、BNE、BLT、BGE、BLTU、BGEU
 AUIPC、LUI
 - **J type**  
 JAL
-- **F type**
+- **F type**  
 FLW、FSW、FADD.S、FSUB.S
-- **CSR Instruction**
+- **CSR Instruction**  
 RDINSTRETH、RDINSTRET、RDCYCLEH、RDCYCLE
 ## Tips
 ## PPA
