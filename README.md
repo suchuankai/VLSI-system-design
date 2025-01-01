@@ -3,7 +3,7 @@
 This project has implemented a **5-stage pipelined CPU** using SystemVerilog. The data width is 32-bit, and the instruction set is based on the RISC-V instruction set architecture.
 There are total of 49 instructions. After being synthesized using TSMC 16nm process technology, the operational frequency can reach up to MHz.
 ## Architecture
-![架構圖](https://github.com/user-attachments/assets/93e55d67-62d9-4635-8bd0-aa7f614a7688)
+![Architecture](https://github.com/user-attachments/assets/acb2b2f5-f335-419f-b0d8-14d910ac0b71)
 ## All Instruction
 - **R type**  
 ADD、SUB、SLL、SLT、SLTU、XOR、SRL、SRA、OR、AND、MUL、MULH、MULHSU、MULHU
