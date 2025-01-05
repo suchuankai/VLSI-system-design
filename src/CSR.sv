@@ -9,26 +9,21 @@ module CSR(
 	output logic [31:0] CSR_out
 	);
 
-logic [63:0] cycleCnt, instretCnt;
-logic [10:0] imm12;
 logic [6:0] opcode;
+logic [10:0] imm12;
 logic [1:0] csr_sel;
+logic [63:0] cycleCnt, instretCnt;
 
 assign opcode = instr[6:0];
 assign imm12 = instr[31:20]; 
 assign csr_sel = {imm12[7], imm12[1]};
-
-
-// always_comb begin
-// 	isCSR = (opcode==`CSR)? 1'b1:1'b0;
-// end 
 
 always_ff@(posedge clk, posedge rst) begin
 	if(rst) begin
 		isCSR <= 1'b0;
 	end
 	else begin
-		isCSR <= (opcode==`CSR)? 1'b1:1'b0;
+		isCSR <= (opcode==`CSR)? 1'b1 : 1'b0;
 	end
 end
 
@@ -50,7 +45,7 @@ always_ff@(posedge clk, posedge rst) begin
 			case(pc_sel)
 				2'b00: instretCnt <= instretCnt + 64'd1;  // Normal case
 				2'b01: instretCnt <= instretCnt - 64'd1;  // Flush 2 instructions 
-				2'b10: instretCnt <= instretCnt;          // Stall
+				2'b10: instretCnt <= instretCnt;          // Stall(Load use)
 			endcase
 		end
 	end

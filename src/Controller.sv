@@ -8,68 +8,148 @@ module Controller(
 	input [6:0] funct7,
 	input [5:0] rs1_addr,
 	input [5:0] rs2_addr,
-	input [31:0] rs1_data,
-	input [31:0] rs2_data,
-	input [5:0] rd_addr_ex,
-	input [5:0] rd_addr_mem,
-	input wb_en_mem,
-	input [5:0] rd_addr_wb,
-	input wb_en_wb,
-	input float_wb_en_mem,
-	input float_wb_en_wb,
-	input floatOpMem,
-	input floatOpWb,
+	input [5:0] rd_addr_EX,
+	input [5:0] rd_addr_MEM,
+	input wb_en_MEM,
+	input [5:0] rd_addr_WB,
+	input wb_en_WB,
+	input fwb_en_MEM,
+	input fwb_en_WB,
 	input taken,                   // Signal to check branch instruction
-	output logic reg1_sel,         // Select the data into register
-	output logic reg2_sel,         // Select the data into register
-	output logic [1:0] mux1_sel,   // Select the src1 1st stage mux before ALU 
-	output logic [1:0] mux2_sel,   // Select the src2 1st stage mux before ALU 
-	output logic mux3_sel,   // Select the src1 2nd stage mux before ALU 
-	output logic mux4_sel,   // Select the src2 2nd stage mux before ALU 
-	output logic [1:0] pc_sel, // Select PC+4, PC, jump/branch address
+	output logic reg1_sel,         // Select the data into reg1
+	output logic reg2_sel,         // Select the data into reg2
+	output logic [1:0] mux1_sel,   // Select the src1 1st stage data before ALU 
+	output logic [1:0] mux2_sel,   // Select the src2 1st stage data before ALU 
+	output logic mux3_sel,         // Select the src1 2nd stage data before ALU 
+	output logic mux4_sel,         // Select the src2 2nd stage data before ALU 
 	output logic [3:0] alu_ctrl,
 	output logic [1:0] mul_ctrl,
 	output logic [1:0] alu_mul_sel,
-	output logic DM_WEB_EX,
-	output logic [2:0] is_load_ex,
-	output logic [1:0] is_store_ex, 
-	output logic [2:0] is_branch,
-	output logic wb_en,
-	output logic [1:0] instr_sel, 
-	output logic float_wb_en_ex,
-	output logic floatAddSub,
-	output logic DM_CEB,
+	output logic [2:0] is_load_EX,
+	output logic [1:0] is_store_EX, 
+	output logic [2:0] is_branch_EX,
 	output load_use,
-	output logic floatOpEx
+	output logic [1:0] pc_sel,     // Select PC+4, PC, jump/branch address
+	output logic [1:0] instr_sel, 
+	output logic DM_CEB,
+	output logic DM_WEB_EX,
+	output logic wb_en_EX,
+	output logic fwb_en_EX,
+	output logic floatAddSub
 	);
 
-logic delay2;
-always_ff@(posedge clk or posedge rst) begin
+/* -------------------- ALU Dataflow Control Signal -------------------- */ 
+always_comb begin
+ 	reg1_sel = ( (rs1_addr==rd_addr_WB) && (rd_addr_WB!=5'd0) && (wb_en_WB || fwb_en_WB) );
+ 	reg2_sel = ( (rs2_addr==rd_addr_WB) && (rd_addr_WB!=5'd0) && (wb_en_WB || fwb_en_WB) );
+end
+
+always_ff@(posedge clk, posedge rst) begin
 	if(rst) begin
-		delay2 <= 1'b0;
-		DM_CEB <= 1'b1;
+		mux1_sel <= 2'b00;
 	end
 	else begin
-		delay2 <= 1'b1;
-		if(delay2)
-			DM_CEB <= (opcode==`Load || opcode==`FLW || opcode==`Store || opcode==`FSW)? 1'b0 : 1'b1;
+		if(rs1_addr==rd_addr_EX && rd_addr_EX!=5'd0 && (wb_en_EX || fwb_en_EX) ) mux1_sel <= 2'b01;
+		else if(rs1_addr==rd_addr_MEM && rd_addr_MEM!=5'd0 && (wb_en_MEM || fwb_en_MEM)) mux1_sel <= 2'b10;
+		else mux1_sel <= 2'b00;
 	end
 end
 
-logic floatOpID;
-assign floatOpID = (opcode==`FALU || opcode==`FLW || opcode==`FSW)? 1'b1 : 1'b0;
-always_ff@(posedge clk or posedge rst) begin
+always_ff@(posedge clk, posedge rst) begin
 	if(rst) begin
-		floatOpEx <= 1'b0;
+		mux2_sel <= 2'b00;
 	end
 	else begin
-		floatOpEx <= floatOpID;
+		if(rs2_addr==rd_addr_EX && rd_addr_EX!=5'd0 && (wb_en_EX || fwb_en_EX) ) mux2_sel <= 2'b01;
+		else if(rs2_addr==rd_addr_MEM && rd_addr_MEM!=5'd0 && (wb_en_MEM || fwb_en_MEM) ) mux2_sel <= 2'b10;
+		else mux2_sel <= 2'b00;
+	end
+end
+
+always_ff@(posedge clk, posedge rst) begin  // PC or rs1
+	if(rst) begin
+		mux3_sel <= 1'b0;
+	end
+	else begin
+		mux3_sel <= (opcode==`Branch || opcode==`AUIPC || opcode==`JAL)? 1'b1:1'b0; // PC relate instruction
+	end
+end
+
+always_ff@(posedge clk, posedge rst) begin // imm or rs2
+	if(rst) begin
+		mux4_sel <= 1'b0;
+	end
+	else begin
+		mux4_sel <= (opcode==`Rtype || opcode==`FALU)? 1'b0:1'b1;
+	end
+end
+
+// Store control
+always_ff@(posedge clk, posedge rst) begin
+	if(rst) begin
+		is_store_EX <= 2'b00;
+	end
+	else begin
+		if(opcode==`Store || opcode==`FSW) begin
+			case(funct3)
+				3'b010: is_store_EX <= 2'b01;  // SW
+				3'b001: is_store_EX <= 2'b10;  // SH
+				3'b000: is_store_EX <= 2'b11;  // SB
+			endcase
+		end
+		else is_store_EX <= 2'b00;
+	end
+end
+
+// Load control
+always_ff@(posedge clk, posedge rst) begin
+	if(rst) begin
+		is_load_EX <= 3'b000;
+	end
+	else begin
+		if(opcode==`Load || opcode==`FLW) begin
+			case(funct3)
+				3'b000: is_load_EX <= 3'b001;  // LB
+				3'b001: is_load_EX <= 3'b010;  // LH
+				3'b010: is_load_EX <= 3'b011;  // LW, FLW
+				3'b100: is_load_EX <= 3'b100;  // LHU
+				3'b101: is_load_EX <= 3'b101;  // LBU
+				default: is_load_EX <= 3'b000;
+			endcase
+		end
+		else is_load_EX <= 3'b000;
+	end
+end
+
+// Branch control
+always_ff@(posedge clk, posedge rst) begin
+	if(rst) begin
+		is_branch_EX <= 3'b000;
+	end
+	else begin
+		if(opcode == `Branch) begin
+			case(funct3[2:1])
+				2'b00: begin   // BEQ, BNE
+					is_branch_EX <= {funct3[0], 2'b01};
+				end
+				2'b10: begin   // BLT, BGE
+					is_branch_EX <= {funct3[0], 2'b10};
+				end  
+				2'b11: begin   // BLTU、 BGEU
+					is_branch_EX <= {funct3[0], 2'b11};
+				end
+				default: begin
+					is_branch_EX <= {funct3[0], 2'b00};
+				end
+			endcase
+		end
+		else is_branch_EX <= 3'b000;
 	end
 end
 
 
-// alu_ctrl signal needs opcode, func3, func7 to define
-always_ff@(posedge clk or posedge rst) begin
+/* -------------------- ALU Control Signal -------------------- */ 
+always_ff@(posedge clk, posedge rst) begin
 	if(rst) begin
 		alu_ctrl <= 4'b0000;
 	end
@@ -89,7 +169,7 @@ always_ff@(posedge clk or posedge rst) begin
 	end
 end
 
-always_ff@(posedge clk or posedge rst) begin
+always_ff@(posedge clk, posedge rst) begin
 	if(rst) begin
 		mul_ctrl <= 2'b00;
 	end
@@ -105,7 +185,8 @@ always_ff@(posedge clk or posedge rst) begin
 	end
 end
 
-always_ff@(posedge clk or posedge rst) begin
+// Use to control the alu_out_mem register select(ALU out/Mul out/PC + 4)
+always_ff@(posedge clk, posedge rst) begin
 	if(rst) begin
 		alu_mul_sel <= 2'b00;
 	end
@@ -116,56 +197,9 @@ always_ff@(posedge clk or posedge rst) begin
 	end
 end
 
-// ALU dataflow
-always_comb begin
- 	reg1_sel = ( (rs1_addr==rd_addr_wb) && (rd_addr_wb!=5'd0) && (wb_en_wb || float_wb_en_wb) );
- 	reg2_sel = ( (rs2_addr==rd_addr_wb) && (rd_addr_wb!=5'd0) && (wb_en_wb || float_wb_en_wb) );
-end
 
-always_ff@(posedge clk or posedge rst) begin
-	if(rst) begin
-		mux1_sel <= 2'b00;
-	end
-	else begin
-		if(rs1_addr==rd_addr_ex && rd_addr_ex!=5'd0 && (wb_en || float_wb_en_ex) ) mux1_sel <= 2'b01;
-		else if(rs1_addr==rd_addr_mem && rd_addr_mem!=5'd0 && (wb_en_mem || float_wb_en_mem)) mux1_sel <= 2'b10;
-		else mux1_sel <= 2'b00;
-	end
-end
-
-always_ff@(posedge clk or posedge rst) begin
-	if(rst) begin
-		mux2_sel <= 2'b00;
-	end
-	else begin
-		if(rs2_addr==rd_addr_ex && rd_addr_ex!=5'd0 && (wb_en || float_wb_en_ex) ) mux2_sel <= 2'b01;
-		else if(rs2_addr==rd_addr_mem && rd_addr_mem!=5'd0 && (wb_en_mem || float_wb_en_mem) ) mux2_sel <= 2'b10;
-		else mux2_sel <= 2'b00;
-	end
-end
-
-always_ff@(posedge clk or posedge rst) begin  // PC or rs1
-	if(rst) begin
-		mux3_sel <= 1'b0;
-	end
-	else begin
-		mux3_sel <= (opcode==`Branch || opcode==`AUIPC || opcode==`JAL)? 1'b1:1'b0; // PC relate instruction
-	end
-end
-
-always_ff@(posedge clk or posedge rst) begin // imm or rs2
-	if(rst) begin
-		mux4_sel <= 1'b0;
-	end
-	else begin
-		mux4_sel <= (opcode==`Rtype || opcode==`FALU)? 1'b0:1'b1;
-	end
-end
-
-// Load use stall control
+/* -------------------- Hazard relate Signal -------------------- */ 
 logic [6:0] opcode_reg;
-logic load_use_reg;
-
 always_ff@(posedge clk, posedge rst) begin
 	if(rst) begin
 		opcode_reg <= 1'b0;
@@ -175,7 +209,8 @@ always_ff@(posedge clk, posedge rst) begin
 	end
 end
 
-assign load_use = ( (opcode_reg==`Load || opcode_reg==`FLW) && ((rd_addr_ex==rs1_addr) || (rd_addr_ex==rs2_addr)) );
+logic load_use_reg;
+assign load_use = ( (opcode_reg==`Load || opcode_reg==`FLW) && ((rd_addr_EX==rs1_addr) || (rd_addr_EX==rs2_addr)) );
 
 always_ff@(posedge clk, posedge rst) begin
 	if(rst) begin
@@ -183,40 +218,6 @@ always_ff@(posedge clk, posedge rst) begin
 	end
 	else begin
 		load_use_reg <= load_use;
-	end
-end
-
-// DM Load/Store enable 
-logic delay;
-always_ff@(posedge clk, posedge rst) begin
-	if(rst) begin
-		DM_WEB_EX <= 1'b1;  // read
-		delay <= 1'b0;
-	end
-	else begin
-		delay <= 1'b1;
-		if(delay)
-			DM_WEB_EX <= ((opcode==`Store || opcode==`FSW) && !load_use)? 0:1;
-	end
-end
-
-// Write back control (Only branch instruction don't need write back)
-always_ff@(posedge clk, posedge rst) begin
-	if(rst) begin
-		wb_en <= 1'b0;
-	end
-	else begin
-		wb_en <= (opcode==`Branch || opcode==`Store || opcode==`FSW || opcode==`FLW ||  opcode==`FALU || pc_sel==2'b01 || load_use)? 0:1;
-	end
-end
-
-logic [2:0] funct3_reg; 
-always_ff@(posedge clk, posedge rst) begin
-	if(rst) begin
-		funct3_reg <= 3'b000;
-	end
-	else begin
-		funct3_reg <= funct3;
 	end
 end
 
@@ -232,79 +233,58 @@ always_comb begin
 		`JALR: pc_sel = 2'b01; // ALU out  
 		`Branch: pc_sel = (taken==1'b1)? 2'b01 : 2'b00; // ALU out
 		`Load,
-		`FLW: pc_sel = ((rd_addr_ex==rs1_addr) || (rd_addr_ex==rs2_addr))? 2'b10:2'b00;
+		`FLW: pc_sel = (load_use)? 2'b10 : 2'b00;  // Stall 1 cycle
 		default: pc_sel = 2'b00;
 	endcase
 end
 
+/* -------------------- DM relate Signal -------------------- */ 
+logic delay;  // This delay is for DM, when the first cycle IM output instr is 'z' will cause DM error.
+
 always_ff@(posedge clk, posedge rst) begin
-	if(rst) begin
-		is_store_ex <= 2'b00;
-	end
-	else begin
-		if(opcode == `Store || opcode == `FSW) begin
-			case(funct3)
-				3'b010: is_store_ex <= 2'b01;  // SW
-				3'b001: is_store_ex <= 2'b10;  // SH
-				3'b000: is_store_ex <= 2'b11;  // SB
-			endcase
-		end
-		else is_store_ex <= 2'b00;
-	end
+	if(rst) delay <= 1'b0;
+	else delay <= 1'b1;
 end
 
 always_ff@(posedge clk, posedge rst) begin
 	if(rst) begin
-		is_load_ex <= 3'b000;
+		DM_CEB <= 1'b1;
 	end
 	else begin
-		if(opcode==`Load || opcode==`FLW) begin
-			case(funct3)
-				3'b000: is_load_ex <= 3'b001;  // LB
-				3'b001: is_load_ex <= 3'b010;  // LH
-				3'b010: is_load_ex <= 3'b011;  // LW, FLW
-				3'b100: is_load_ex <= 3'b100;  // LHU
-				3'b101: is_load_ex <= 3'b101;  // LBU
-				default: is_load_ex <= 3'b000;
-			endcase
-		end
-		else is_load_ex <= 3'b000;
+		if(delay) DM_CEB <= (opcode==`Load || opcode==`FLW || opcode==`Store || opcode==`FSW)? 1'b0 : 1'b1;
 	end
 end
 
+// DM Load/Store enable 
 always_ff@(posedge clk, posedge rst) begin
 	if(rst) begin
-		is_branch <= 3'b000;
+		DM_WEB_EX <= 1'b1;  // read
 	end
 	else begin
-		if(opcode == `Branch) begin
-			case(funct3[2:1])
-				2'b00: begin   // BEQ, BNE
-					is_branch <= {funct3[0], 2'b01};
-				end
-				2'b10: begin   // BLT, BGE
-					is_branch <= {funct3[0], 2'b10};
-				end  
-				2'b11: begin   // BLTU、 BGEU
-					is_branch <= {funct3[0], 2'b11};
-				end
-				default: begin
-					is_branch <= {funct3[0], 2'b00};
-				end
-			endcase
-		end
-		else is_branch <= 3'b000;
+		if(delay) DM_WEB_EX <= ((opcode==`Store || opcode==`FSW) && !load_use)? 1'b0 : 1'b1;
 	end
 end
 
-// Floating Register control
+
+/* -------------------- Write back control -------------------- */ 
 always_ff@(posedge clk, posedge rst) begin
 	if(rst) begin
-		float_wb_en_ex <= 1'b0;
+		wb_en_EX <= 1'b0;
+	end
+	else begin  // pc_sel = 2'b01 means jump or branch taken.
+		wb_en_EX <= (opcode==`Branch || opcode==`Store || opcode==`FSW || opcode==`FLW || opcode==`FALU || pc_sel==2'b01 || load_use)? 1'b0 : 1'b1;
+	end
+end
+
+
+/* -------------------- Floating Register control -------------------- */  
+always_ff@(posedge clk, posedge rst) begin
+	if(rst) begin
+		fwb_en_EX <= 1'b0;
 	end
 	else begin
-		if(load_use) float_wb_en_ex <= 1'b0;
-		else float_wb_en_ex <= (opcode==`FLW || opcode==`FALU)? 1'b1:1'b0;
+		if(load_use) fwb_en_EX <= 1'b0;
+		else fwb_en_EX <= (opcode==`FLW || opcode==`FALU)? 1'b1 : 1'b0;
 	end
 end
 

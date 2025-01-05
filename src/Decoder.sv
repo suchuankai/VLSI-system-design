@@ -4,53 +4,42 @@ module Decoder(
 	input clk, 
 	input rst,
 	input [31:0] instr,
-	output [6:0] opcode,
-	output logic [5:0] rd_addr,
-	output [2:0] funct3,
-	output logic [5:0] rs1_addr,
-	output logic [5:0] rs2_addr,
-	output [6:0] funct7,
-	output logic [31:0] imm
+	output [6:0] opcode_ID,
+	output [2:0] funct3_ID,
+	output [6:0] funct7_ID,
+	output logic [5:0] rs1_addr_ID,
+	output logic [5:0] rs2_addr_ID,
+	output logic [5:0] rd_addr_ID,
+	output logic [31:0] imm_ID
 	);
 
 // Decode
-assign opcode   = instr[6:0];
-assign funct3   = instr[14:12];
-assign funct7   = instr[31:25];
+assign opcode_ID   = instr[6:0];
+assign funct3_ID   = instr[14:12];
+assign funct7_ID   = instr[31:25];
 
+// Extend first bit to indicate register type for fowarding judgement.
 always_comb begin
-	if(opcode==`FLW || opcode==`FALU) rd_addr  = {1'b1, instr[11:7]};  // Use first bit to indicate which register type.
-	else rd_addr = {1'b0, instr[11:7]};
-	
-	if(opcode==`FSW || opcode==`FALU) rs2_addr = {1'b1, instr[24:20]};
-	else rs2_addr = {1'b0, instr[24:20]};
-
-	if(opcode==`FALU) rs1_addr = {1'b1, instr[19:15]};
-	else rs1_addr = {1'b0, instr[19:15]};
+	rs1_addr_ID = (opcode_ID==`FALU)? {1'b1, instr[19:15]} : {1'b0, instr[19:15]};
+	rs2_addr_ID = (opcode_ID==`FSW || opcode_ID==`FALU)? {1'b1, instr[24:20]} : {1'b0, instr[24:20]};
+	rd_addr_ID  = (opcode_ID==`FLW || opcode_ID==`FALU)? {1'b1, instr[11:7]} : {1'b0, instr[11:7]};
 end
 
 // Immediate generate
-// logic [31:0] imm_tmp;
 always_comb begin
-	case(opcode)
+	case(opcode_ID)
 		`Itype,
 		`Load, 
 		`FLW,
-		`JALR  : imm = {{20{instr[31]}}, instr[31:20]};  // Notice shift command use "shamt"
+		`JALR  : imm_ID = {{20{instr[31]}}, instr[31:20]};  // Notice shift command use "shamt"
 		`FSW,
-		`Store : imm = {{20{instr[31]}}, instr[31:25], instr[11:7]};
-		`Branch: imm = {{19{instr[31]}}, instr[7], instr[30:25], instr[11:8], 1'b0};
+		`Store : imm_ID = {{20{instr[31]}}, instr[31:25], instr[11:7]};
+		`Branch: imm_ID = {{19{instr[31]}}, instr[7], instr[30:25], instr[11:8], 1'b0};
 		`AUIPC,
-		`LUI   : imm = {instr[31:12], 12'd0};
-		`JAL   : imm = {{12{instr[31]}}, instr[19:12], instr[20], instr[30:21], 1'b0};
-		default: imm = 32'd0; 
+		`LUI   : imm_ID = {instr[31:12], 12'd0};
+		`JAL   : imm_ID = {{12{instr[31]}}, instr[19:12], instr[20], instr[30:21], 1'b0};
+		default: imm_ID = 32'd0; 
 	endcase
 end
-
-// always_comb begin
-// 	if(opcode==`Itype && (funct3==3'b001 || funct3==3'b101) ) imm = {27'd0 ,imm_tmp[4:0]};  // Shift instruction just use shamt bit
-// 	else imm = imm_tmp;
-// end
-
 
 endmodule
