@@ -1,20 +1,20 @@
 module FloatRegister(
 	input clk,
 	input rst,
-	input float_wb_en,
-	input [5:0] float_wb_addr,
-	input [31:0] float_write_data,
-	input [5:0] float_rs1_addr,
-	input [5:0] float_rs2_addr,
-	output [31:0] float_rs1_data,
-	output [31:0] float_rs2_data
+	input fwb_en,
+	input [5:0] fwb_addr,
+	input [31:0] fwb_data,
+	input [5:0] frs1_addr,
+	input [5:0] frs2_addr,
+	output [31:0] frs1_data,
+	output [31:0] frs2_data
 	);
 
-logic [31:0] floatReg[31:1];  // Save register 0 cost
+logic [31:0] floatReg[31:1];
 integer i;
 
-assign float_rs1_data = (float_rs1_addr[4:0]==5'd0 /*|| !float_rs1_addr[5]*/)? 32'd0 : floatReg[float_rs1_addr[4:0]];  // MSB is 1 means need to read.
-assign float_rs2_data = (float_rs2_addr[4:0]==5'd0 /*|| !float_rs2_addr[5]*/)? 32'd0 : floatReg[float_rs2_addr[4:0]];
+assign frs1_data = (frs1_addr[4:0]==5'd0 || !frs1_addr[5])? 32'd0 : floatReg[frs1_addr[4:0]];  // MSB is 1 means need to read.
+assign frs2_data = (frs2_addr[4:0]==5'd0 || !frs2_addr[5])? 32'd0 : floatReg[frs2_addr[4:0]];
 
 always@(posedge clk, posedge rst) begin
 	if(rst) begin
@@ -24,8 +24,8 @@ always@(posedge clk, posedge rst) begin
 	end
 	else begin
 		// Register Write
-		if(float_wb_en && float_wb_addr[4:0]!=5'd0 /*&& float_wb_addr[5]*/) begin
-			floatReg[float_wb_addr[4:0]] <= float_write_data;
+		if(fwb_en && fwb_addr[4:0]!=5'd0 /*&& fwb_addr[5]*/) begin
+			floatReg[fwb_addr[4:0]] <= fwb_data;
 		end
 	end
 end

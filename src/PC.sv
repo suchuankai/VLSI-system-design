@@ -7,13 +7,11 @@ module PC(
 	output logic [31:0] pc_reg
 	);
 
-/* ---------- PC register ---------- */
-logic [31:0] pc_reg;
 logic [31:0] pc_add4;
 assign pc_add4 = pc_reg + 32'd4;
 assign pc = pc_reg[15:2];
 
-always@(posedge clk, posedge rst) begin
+always_ff@(posedge clk, posedge rst) begin
 	if(rst) begin
 		pc_reg <= 32'd0;
 	end
