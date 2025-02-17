@@ -1,6 +1,7 @@
 module IF_ID(
 	input clk, 
 	input rst,
+	input [1:0] busStall,
 	input [31:0] pc, 
 	input [31:0] instr,
 	input [1:0] instr_sel,
@@ -15,7 +16,8 @@ always_ff@(posedge clk, posedge rst) begin
 		instr_reg <= 32'd0;
 	end
 	else begin
-		instr_reg <= instr;
+		if(busStall != 2'b00) instr_reg <= instr_reg;
+		else instr_reg <= instr;
 	end
 end
 
@@ -24,7 +26,8 @@ always_ff@(posedge clk, posedge rst) begin
 		pc_ID <= 32'd0;
 	end
 	else begin
-		if(!loadUse) pc_ID <= pc;
+		if(busStall != 2'b00) pc_ID <= pc_ID;
+		else if(!loadUse) pc_ID <= pc;
 	end
 end
 
@@ -34,7 +37,8 @@ always_ff@(posedge clk, posedge rst) begin
 		flush <= 1'b0;
 	end
 	else begin
-		flush <= instr_sel[1];
+		if(busStall != 2'b00) flush <= flush;
+		else flush <= instr_sel[1];
 	end
 end
 

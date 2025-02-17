@@ -1,23 +1,16 @@
-`include "PC.sv"
-`include "CSR.sv"
-`include "IF_ID.sv"
-`include "ID_EXE.sv"
-`include "EX_MEM.sv"
-`include "MEM_WB.sv"
-`include "Decoder.sv"
-`include "Controller.sv"
-`include "Register.sv"
-`include "FloatRegister.sv"
-
 module CPU(
 	input clk, 
 	input rst,
+	input [1:0] busStall,
 	input [31:0] instr,
-	output [13:0] pc,
+	output IM_WEB,
+	output [31:0] pc,
+	output IM_CEB,
+
 	input [31:0] DM_OUT,
 	output DM_WEB,
-	output [31:0] DM_BWEB,
-	output [13:0] DM_A,
+	output [3:0]  DM_BWEB,
+	output [31:0] DM_A,
 	output [31:0] DM_IN, 
 	output DM_CEB
 	);
@@ -26,7 +19,7 @@ module CPU(
 /* --------------- Top signal  --------------- */ 
 logic [31:0] alu_out_wire;  // For DM quickly access(DM_addr)
 logic [31:0] src1_st1, src2_st1;
-assign DM_A = alu_out_wire[15:2];
+assign DM_A = alu_out_wire;
 assign DM_IN = src2_st1;
 
 
@@ -103,8 +96,11 @@ logic [31:0] alu_out_WB;
 PC u_PC(
 	.clk(clk),
     .rst(rst),
+    .busStall(busStall),
     .pc_sel(pc_sel),
     .alu_out(alu_out_wire),
+    .IM_CEB(IM_CEB),
+    .IM_WEB(IM_WEB),
     .pc(pc),
     .pc_reg(pc_reg)
     );
@@ -113,6 +109,7 @@ PC u_PC(
 IF_ID u_IF_ID(
 	.clk(clk),
 	.rst(rst),
+	.busStall(busStall),
 	.pc(pc_reg),
 	.instr(instr),
 	.instr_sel(instr_sel),
@@ -139,6 +136,7 @@ Decoder u_decode(
 CSR u_CSR(
 	.clk(clk),
 	.rst(rst),
+	.busStall(busStall),
 	.pc_sel(pc_sel),
 	.instr(instr),
 	.isCSR(isCSR),
@@ -149,6 +147,7 @@ CSR u_CSR(
 Controller u_controller(
 	.clk(clk),
 	.rst(rst),
+	.busStall(busStall),
 	.opcode(opcode_ID),
 	.funct3(funct3_ID),
 	.funct7(funct7_ID),
@@ -188,6 +187,7 @@ Controller u_controller(
 Register u_register(
 	.clk(clk),
 	.rst(rst),
+	.busStall(busStall),
 	.wb_en(wb_en_WB),
 	.wb_addr(rd_addr_WB),
 	.write_data(alu_out_WB),
@@ -201,6 +201,7 @@ Register u_register(
 FloatRegister u_floatRegister(
 	.clk(clk),
 	.rst(rst),
+	.busStall(busStall),
 	.fwb_en(fwb_en_WB),
 	.fwb_addr(rd_addr_WB),
 	.fwb_data(alu_out_WB),
@@ -215,6 +216,7 @@ FloatRegister u_floatRegister(
 ID_EXE u_ID_EXE(
     .clk(clk),
     .rst(rst),
+    .busStall(busStall),
     .opcode(opcode_ID),
     .reg1_sel(reg1_sel),
     .reg2_sel(reg2_sel),
@@ -237,6 +239,7 @@ ID_EXE u_ID_EXE(
 EX_MEM u_EX_MEM(
 	.clk(clk),
     .rst(rst),
+    .busStall(busStall),
     .mux1_sel(mux1_sel),        
 	.mux2_sel(mux2_sel), 
 	.mux3_sel(mux3_sel), 
@@ -275,6 +278,7 @@ EX_MEM u_EX_MEM(
 MEM_WB u_MEM_WB(
     .clk(clk),
     .rst(rst),
+    .busStall(busStall),
     .wb_en_MEM(wb_en_MEM),
     .fwb_en_MEM(fwb_en_MEM),
     .is_load_MEM(is_load_MEM),

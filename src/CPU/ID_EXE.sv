@@ -1,8 +1,7 @@
-`include "define.svh"
-
 module ID_EXE(
 	input clk, 
 	input rst,
+	input [1:0] busStall,
 	input [6:0] opcode,
 	input reg1_sel,
 	input reg2_sel,
@@ -26,7 +25,8 @@ always@(posedge clk or posedge rst) begin
 		rd_addr_EX <= 5'd0;
 	end
 	else begin
-		rd_addr_EX <= rd_addr;
+		if(busStall[1]) rd_addr_EX <= rd_addr_EX;
+		else rd_addr_EX <= rd_addr;
 	end
 end
 
@@ -35,7 +35,8 @@ always@(posedge clk or posedge rst) begin
 		imm_EX <= 32'd0;
 	end
 	else begin
-		imm_EX <= imm_ID;
+		if(busStall[1]) imm_EX <= imm_EX;
+		else imm_EX <= imm_ID;
 	end
 end
 
@@ -44,7 +45,8 @@ always@(posedge clk or posedge rst) begin
 		rs1_data_reg <= 32'd0;
 	end
 	else begin
-		if(reg1_sel) rs1_data_reg <= alu_out_WB;
+		if(busStall[1]) rs1_data_reg <= rs1_data_reg;
+		else if(reg1_sel) rs1_data_reg <= alu_out_WB;
 		else if(opcode==`FALU) rs1_data_reg <= frs1_data;  // opcode==`FSW || 
 		else rs1_data_reg <= rs1_data;
 	end
@@ -55,7 +57,8 @@ always@(posedge clk or posedge rst) begin
 		rs2_data_reg <= 32'd0;
 	end 
 	else begin
-		if(reg2_sel) rs2_data_reg <= alu_out_WB;
+		if(busStall[1]) rs2_data_reg <= rs2_data_reg;
+		else if(reg2_sel) rs2_data_reg <= alu_out_WB;
 		else if(opcode==`FSW || opcode==`FALU) rs2_data_reg <= frs2_data;
 		else rs2_data_reg <= rs2_data;
 	end
@@ -66,7 +69,8 @@ always@(posedge clk or posedge rst) begin
 		pc_EX <= 32'd0;
 	end
 	else begin
-		pc_EX <= pc_ID;
+		if(busStall[1]) pc_EX <= pc_EX;
+		else pc_EX <= pc_ID;
 	end
 end
 
