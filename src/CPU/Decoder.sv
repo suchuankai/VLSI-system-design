@@ -1,5 +1,3 @@
-`include "define.svh"
-
 module Decoder(
 	input clk, 
 	input rst,
@@ -14,9 +12,32 @@ module Decoder(
 	);
 
 // Decode
-assign opcode_ID   = instr[6:0];
-assign funct3_ID   = instr[14:12];
-assign funct7_ID   = instr[31:25];
+
+// For debug propose
+typedef enum logic [6:0]{
+	Rtype  = 7'b0110011,
+	Itype  = 7'b0010011,
+	Load   = 7'b0000011,
+	Store  = 7'b0100011,
+	Branch = 7'b1100011,
+	JALR   = 7'b1100111,
+	JAL    = 7'b1101111,
+	AUIPC  = 7'b0010111,
+	LUI    = 7'b0110111,
+	FLW    = 7'b0000111,
+	FSW    = 7'b0100111,
+	FALU   = 7'b1010011,
+	CSR    = 7'b1110011
+} opcode_t;
+
+opcode_t opcode_t1;
+assign opcode_t1 = opcode_t'(instr[6:0]);
+
+
+
+assign opcode_ID = instr[6:0];
+assign funct3_ID = instr[14:12];
+assign funct7_ID = instr[31:25];
 
 // Extend first bit to indicate register type for fowarding judgement.
 always_comb begin
@@ -34,7 +55,7 @@ always_comb begin
 		`JALR  : imm_ID = {{20{instr[31]}}, instr[31:20]};  // Notice shift command use "shamt"
 		`FSW,
 		`Store : imm_ID = {{20{instr[31]}}, instr[31:25], instr[11:7]};
-		`Branch: imm_ID = {{19{instr[31]}}, instr[7], instr[30:25], instr[11:8], 1'b0};
+		`Branch: imm_ID = {{20{instr[31]}}, instr[7], instr[30:25], instr[11:8], 1'b0};
 		`AUIPC,
 		`LUI   : imm_ID = {instr[31:12], 12'd0};
 		`JAL   : imm_ID = {{12{instr[31]}}, instr[19:12], instr[20], instr[30:21], 1'b0};

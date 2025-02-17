@@ -1,10 +1,7 @@
-`include "ALU.sv"
-`include "FPU.sv"
-`include "define.svh"
-
 module EX_MEM(
 	input clk,
 	input rst,
+	input [1:0] busStall,
 	input [1:0] mux1_sel,        
 	input [1:0] mux2_sel, 
 	input mux3_sel, 
@@ -36,10 +33,10 @@ module EX_MEM(
 	output logic wb_en_MEM,
 	output logic fwb_en_MEM,
 	output logic [2:0] is_load_MEM,
-	output logic [31:0] DM_BWEB_MEM
+	output logic [3:0] DM_BWEB_MEM
 	);
 
-logic [31:0] src1_st1, src1_st2;
+logic [31:0] src1_st2;
 logic [31:0] src2_st2;
 
 // Data from register or forward
@@ -122,7 +119,8 @@ always@(posedge clk, posedge rst) begin
 		alu_out_MEM <= 32'd0;
 	end
 	else begin
-		if(isCSR) alu_out_MEM <= CSR_out;
+		if(busStall[1]) alu_out_MEM <= alu_out_MEM;
+		else if(isCSR) alu_out_MEM <= CSR_out;
 		else if(fwb_en_EX) alu_out_MEM <= fpu_out;
 		else begin
 			case(alu_mul_sel)
@@ -140,7 +138,8 @@ always@(posedge clk, posedge rst) begin
 		rd_addr_MEM <= 6'd0;
 	end
 	else begin
-		rd_addr_MEM <= rd_addr_EX;
+		if(busStall[1]) rd_addr_MEM <= rd_addr_MEM;
+		else rd_addr_MEM <= rd_addr_EX;
 	end
 end
 
@@ -150,8 +149,10 @@ always@(posedge clk, posedge rst) begin
 		fwb_en_MEM <= 1'b0;
 	end
 	else begin
-		wb_en_MEM <= wb_en_EX;
-		fwb_en_MEM <= fwb_en_EX;
+		if(busStall[1]) wb_en_MEM <= wb_en_MEM;
+		else wb_en_MEM <= wb_en_EX;
+		if(busStall[1]) fwb_en_MEM <= fwb_en_MEM;
+		else fwb_en_MEM <= fwb_en_EX;
 	end
 end
 
@@ -160,7 +161,8 @@ always@(posedge clk, posedge rst) begin
 		is_load_MEM <= 3'b000;
 	end
 	else begin
-		is_load_MEM <= is_load_EX;
+		if(busStall[1]) is_load_MEM <= is_load_MEM;
+		else is_load_MEM <= is_load_EX;
 	end
 end
 
@@ -168,43 +170,43 @@ always_comb begin
 	if(is_store_EX!=2'b00) begin
 		if(alu_out_wire[1:0]==2'b00)begin
 			case(is_store_EX)
-				2'b01: DM_BWEB_MEM = 32'h0000_0000; // SW
-				2'b10: DM_BWEB_MEM = 32'hffff_0000; // SH
-				2'b11: DM_BWEB_MEM = 32'hffff_ff00; // SB
-				default: DM_BWEB_MEM = 32'hffff_ffff; // Error instruction
+				2'b01: DM_BWEB_MEM   = 4'b0000; // SW
+				2'b10: DM_BWEB_MEM   = 4'b1100; // SH
+				2'b11: DM_BWEB_MEM   = 4'b1110; // SB
+				default: DM_BWEB_MEM = 4'b1111; // Error instruction
 			endcase
 			src2_st1 = src2_st1_tmp;
 		end
 		else if(alu_out_wire[1:0]==2'b01)begin
 			case(is_store_EX)
-				2'b01: DM_BWEB_MEM = 32'h0000_00ff; // SW
-				2'b10: DM_BWEB_MEM = 32'hff00_00ff; // SH
-				2'b11: DM_BWEB_MEM = 32'hffff_00ff; // SB
-				default: DM_BWEB_MEM = 32'hffff_ffff; // Error instruction
+				2'b01: DM_BWEB_MEM   = 4'b0001; // SW
+				2'b10: DM_BWEB_MEM   = 4'b1001; // SH
+				2'b11: DM_BWEB_MEM   = 4'b1101; // SB
+				default: DM_BWEB_MEM = 4'b1111; // Error instruction
 			endcase
 			src2_st1 = src2_st1_tmp << 8;
 		end
 		else if(alu_out_wire[1:0]==2'b10) begin
 			case(is_store_EX)
-				2'b01: DM_BWEB_MEM = 32'h0000_ffff; // SW
-				2'b10: DM_BWEB_MEM = 32'h0000_ffff; // SH
-				2'b11: DM_BWEB_MEM = 32'hff00_ffff; // SB
-				default: DM_BWEB_MEM = 32'hffff_ffff; // Error instruction
+				2'b01: DM_BWEB_MEM   = 4'b0011; // SW
+				2'b10: DM_BWEB_MEM   = 4'b0011; // SH
+				2'b11: DM_BWEB_MEM   = 4'b1011; // SB
+				default: DM_BWEB_MEM = 4'b1111; // Error instruction
 			endcase
 			src2_st1 = src2_st1_tmp << 16;
 		end
 		else begin  // 2'b11
 			case(is_store_EX)
-				2'b01: DM_BWEB_MEM = 32'h00ff_ffff; // SW
-				2'b10: DM_BWEB_MEM = 32'h00ff_ffff; // SH
-				2'b11: DM_BWEB_MEM = 32'h00ff_ffff; // SB
-				default: DM_BWEB_MEM = 32'hffff_ffff; // Error instruction
+				2'b01: DM_BWEB_MEM   = 4'b0111; // SW
+				2'b10: DM_BWEB_MEM   = 4'b0111; // SH
+				2'b11: DM_BWEB_MEM   = 4'b0111; // SB
+				default: DM_BWEB_MEM = 4'b1111; // Error instruction
 			endcase
 			src2_st1 = src2_st1_tmp << 24;
 		end
 	end
 	else begin
-		DM_BWEB_MEM = 32'hffff_ffff;
+		DM_BWEB_MEM = 4'b1111;
 		src2_st1 = src2_st1_tmp;
 	end
 end

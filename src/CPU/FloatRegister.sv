@@ -1,6 +1,7 @@
 module FloatRegister(
 	input clk,
 	input rst,
+	input [1:0] busStall,
 	input fwb_en,
 	input [5:0] fwb_addr,
 	input [31:0] fwb_data,
@@ -24,7 +25,7 @@ always@(posedge clk, posedge rst) begin
 	end
 	else begin
 		// Register Write
-		if(fwb_en && fwb_addr[4:0]!=5'd0 /*&& fwb_addr[5]*/) begin
+		if(!busStall[1] && fwb_en && fwb_addr[4:0]!=5'd0 /*&& fwb_addr[5]*/) begin
 			floatReg[fwb_addr[4:0]] <= fwb_data;
 		end
 	end

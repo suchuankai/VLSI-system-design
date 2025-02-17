@@ -1,6 +1,7 @@
 module Register(
 	input clk,
 	input rst,
+	input [1:0] busStall,
 	input wb_en,
 	input [5:0] wb_addr,
 	input [31:0] write_data,
@@ -23,7 +24,7 @@ always@(posedge clk, posedge rst) begin
 		end
 	end
 	else begin
-		if(wb_en && wb_addr[4:0]!=5'd0 && !wb_addr[5]) begin
+		if(!busStall[1] && wb_en && wb_addr[4:0]!=5'd0 && !wb_addr[5]) begin
 			register[wb_addr[4:0]] <= write_data;
 		end
 	end

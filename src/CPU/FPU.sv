@@ -1,5 +1,3 @@
-`include "CLZ.sv"
-
 module FPU(
 	input [31:0] FA,
 	input [31:0] FB,

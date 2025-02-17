@@ -1,9 +1,8 @@
-`include "define.svh"
-
 module CSR(
 	input clk, 
 	input rst,
-	input [1:0] pc_sel,
+	input [1:0] busStall,
+	input [1:0] pc_sel, 
 	input [31:0] instr,
 	output logic isCSR,
 	output logic [31:0] CSR_out
@@ -41,11 +40,17 @@ always_ff@(posedge clk, posedge rst) begin
 		instretCnt <= 64'd0;
 	end
 	else begin
-		if(cycleCnt!=64'd0) begin
+		if(cycleCnt!=64'd0 && busStall == 2'b00) begin
 			case(pc_sel)
-				2'b00: instretCnt <= instretCnt + 64'd1;  // Normal case
-				2'b01: instretCnt <= instretCnt - 64'd1;  // Flush 2 instructions 
-				2'b10: instretCnt <= instretCnt;          // Stall(Load use)
+				2'b00: begin
+					instretCnt <= instretCnt + 64'd1;  // Normal case
+				end
+				2'b01: begin
+					instretCnt <= instretCnt;  // Flush 2 instructions 
+				end
+				2'b10: begin
+					instretCnt <= instretCnt;  // Stall(Load use)
+				end
 			endcase
 		end
 	end
