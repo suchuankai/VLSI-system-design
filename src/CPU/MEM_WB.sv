@@ -7,12 +7,16 @@ module MEM_WB(
 	input [2:0] is_load_MEM,
 	input [5:0] rd_addr_MEM,
 	input [31:0] alu_out_MEM,
+	input DM_CEB,
 	input [31:0] DM_OUT,
+	input [1:0] DM_shift,
 	output logic wb_en_WB,
 	output logic fwb_en_WB,
 	output logic [5:0] rd_addr_WB,
 	output logic [31:0] alu_out_WB
 	);
+
+logic [1:0] DM_shift_reg;
 
 always_ff@(posedge clk, posedge rst) begin
 	if(rst) begin
@@ -21,6 +25,15 @@ always_ff@(posedge clk, posedge rst) begin
 	else begin
 		if(busStall[1]) rd_addr_WB <= rd_addr_WB;
 		else rd_addr_WB <= rd_addr_MEM;
+	end
+end
+
+always_ff@(posedge clk, posedge rst) begin
+	if(rst) begin
+		DM_shift_reg <= 2'b00;
+	end
+	else begin
+		if(!DM_CEB) DM_shift_reg <=  DM_shift;
 	end
 end
 
@@ -43,7 +56,12 @@ always_ff@(posedge clk, posedge rst) begin
 		readBuffer <= 32'd0;
 	end
 	else begin
-		readBuffer <= DM_OUT;
+		case(DM_shift_reg)
+			2'b00: readBuffer <= DM_OUT;
+			2'b01: readBuffer <= DM_OUT >> 8;
+			2'b10: readBuffer <= DM_OUT >> 16;
+			2'b11: readBuffer <= DM_OUT >> 24;
+		endcase
 	end
 end
 

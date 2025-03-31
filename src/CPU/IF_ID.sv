@@ -6,6 +6,7 @@ module IF_ID(
 	input [31:0] instr,
 	input [1:0] instr_sel,
 	input loadUse,
+	input isWFI,
 	output logic [31:0] pc_ID,
 	output logic [31:0] instr_ID
 );
@@ -43,7 +44,7 @@ always_ff@(posedge clk, posedge rst) begin
 end
 
 always_comb begin
-	if(flush) instr_ID = 32'h0000_0013;
+	if(flush || isWFI) instr_ID = 32'h0000_0013;  // If WFI, perform NOP operation in the following stage.
 	else begin
 		case(instr_sel)
 			2'b00: instr_ID = instr;

@@ -89,6 +89,8 @@ module SRAM_wrapper (
     .BVALID_S(BVALID_S),
     .BREADY_S(BREADY_S),
 
+    .read_en(1'b1),  // SRAM is always ready.
+    .write_en(1'b1),
     .CEB_S(CEB),
     .WEB_S(WEB),
     .A_S(A),
