@@ -7,19 +7,20 @@ module AXI_Master(
 	input [31:0] addr,
 	input [3:0] bweb,
 	input [31:0] writeData,
+	input [`AXI_LEN_BITS-1:0] burst_len,
 	output logic [31:0] readData,
 	output logic busBusy,   	// When bus busy is 1, stall the cpu
 
 	// 1. AR channel (Read)
 	output logic  [`AXI_ID_BITS-1:0]     ARID_M, 
   	output logic  [`AXI_ADDR_BITS-1:0]   ARADDR_M, 
-  	output logic  [`AXI_LEN_BITS-1:0]    ARLEN_M, 
+  	output logic  [`AXI_LEN_BITS-1:0]    ARLEN_M,  // Nead to modify
   	output logic  [`AXI_SIZE_BITS-1:0]   ARSIZE_M, 
   	output logic  [`USER_BURST_BITS-1:0] ARBURST_M, 
   	output logic                         ARVALID_M, 
   	input                                ARREADY_M, 
      
-    	// 2. R channel (Read)
+    // 2. R channel (Read)
   	input         [`AXI_ID_BITS-1:0]     RID_M, 
   	input         [`AXI_DATA_BITS-1:0]   RDATA_M, 
   	input         [`USER_RRESP_BITS-1:0] RRESP_M, 
@@ -27,8 +28,8 @@ module AXI_Master(
   	input                                RVALID_M, 
   	output logic                         RREADY_M,
     
-    	// 3. AW channel (Write) 
-    	output logic [`AXI_ID_BITS-1:0]     AWID_M, 
+    // 3. AW channel (Write) 
+    output logic [`AXI_ID_BITS-1:0]     AWID_M, 
  	output logic [`AXI_ADDR_BITS-1:0]   AWADDR_M, 
   	output logic [`AXI_LEN_BITS-1:0]    AWLEN_M, 
   	output logic [`AXI_SIZE_BITS-1:0]   AWSIZE_M, 
@@ -85,13 +86,14 @@ logic [`AXI_ADDR_BITS-1:0] ARADDR_M_reg;
 logic [`AXI_ADDR_BITS-1:0] AWADDR_M_reg;
 logic [3:0] bweb_reg;
 logic [31:0] writeData_reg;
+logic [2:0] burst_cnt;
 
 // Data
 always_comb begin
 	// AR channel
 	ARID_M = `AXI_ID_BITS'd0;  // Master 4 bit
 	ARADDR_M = ARADDR_M_reg;
-	ARLEN_M  = `AXI_LEN_BITS'd0;  // Burst = 1
+	ARLEN_M  = burst_len; // Read burst length
 	ARSIZE_M = `AXI_SIZE_BITS'd2; // 4Bytes
 	ARBURST_M = `AXI_BURST_INC;
 	// R channel
@@ -99,15 +101,30 @@ always_comb begin
  	// AW channel
 	AWID_M = `AXI_ID_BITS'd0;  // Master 4 bit
 	AWADDR_M = AWADDR_M_reg;
-	AWLEN_M = `AXI_LEN_BITS'd0;   // Burst = 1
+	AWLEN_M = burst_len;  // Write burst length
 	AWSIZE_M = `AXI_SIZE_BITS'd2; // 4Bytes
 	AWBURST_M = `AXI_BURST_INC;
-	WDATA_M = (state==WRITE_BUSY && WHS)? writeData_reg : 32'd0;
+	WDATA_M = (state==WRITE_BUSY && WHS)? writeData_reg : writeData_reg;
 	WSTRB_M = (state==WRITE_BUSY && WHS)? bweb_reg : 4'b1111;
-	WLAST_M = (state==WRITE_BUSY); // Master burst = 1
+	WLAST_M = (state==WRITE_BUSY && (burst_cnt==AWLEN_M+1)); // Master burst = 1
 end
 
+always_ff@(posedge clk, negedge rst) begin
+	if(!rst) begin
+		burst_cnt <= 3'd1;
+	end
+	else begin
+		if(state == WRITE_BUSY) begin
+			if(WHS) burst_cnt <= (burst_cnt==AWLEN_M+1)? burst_cnt : burst_cnt + 1;
+		end
+		else burst_cnt <= 3'd1;
+	end
+end
 
+logic [31:0] writeData_reg_test;
+logic test1, test2;
+assign test1 = state==STANDBY && !WEB;
+assign test2 = state==WRITE_BUSY && WHS;
 always_ff@(posedge clk, negedge rst) begin
 	if(!rst) begin
 		ARADDR_M_reg <= 32'd0;
@@ -119,14 +136,15 @@ always_ff@(posedge clk, negedge rst) begin
 		ARADDR_M_reg <= (state==STANDBY)? addr : ARADDR_M_reg;
 		AWADDR_M_reg <= (state==STANDBY)? addr : AWADDR_M_reg;
 		bweb_reg <= (state==STANDBY)? bweb : bweb_reg;
-		writeData_reg <= (state==STANDBY)? writeData : writeData_reg;
+		writeData_reg <= ((state==STANDBY && !WEB) || (state==WRITE_BUSY && WHS) )? writeData : writeData_reg;
+		writeData_reg_test <= ((state==STANDBY) || (state==WRITE_BUSY && WHS) )? writeData : writeData_reg_test;
 	end
 end
 
 
 // Signal to Stall cpu
 always_comb begin
-	if(state==RST || state==STANDBY) busBusy = 0; // Only when finish the read/write operation will 
+	if(state==RST || state==STANDBY) busBusy = 0; // Only when finish the read/write operation set 0. 
 	else busBusy = 1;
 end
 

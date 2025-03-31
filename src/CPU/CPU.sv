@@ -2,6 +2,7 @@ module CPU(
 	input clk, 
 	input rst,
 	input [1:0] busStall,
+	input interrupt_dma,
 	input [31:0] instr,
 	output IM_WEB,
 	output [31:0] pc,
@@ -40,12 +41,17 @@ logic [5:0] rs1_addr_ID;
 logic [5:0] rs2_addr_ID;
 logic [5:0] rd_addr_ID;
 logic [31:0] imm_ID;
+logic isWFI;
 
 
 /* --------------- CSR signal  --------------- */ 
 logic isCSR;
 logic [31:0] CSR_out;
-
+logic interrupt, interrupt_re;
+logic [31:0] mtvec;
+logic [31:0] mepc;
+logic interrupt_timer;
+ 
 
 /* --------------- Controller signal  --------------- */ 
 logic reg1_sel, reg2_sel;
@@ -97,6 +103,11 @@ PC u_PC(
 	.clk(clk),
     .rst(rst),
     .busStall(busStall),
+    .isWFI(isWFI),
+    .interrupt(interrupt),
+    .interrupt_re(interrupt_re),
+    .mtvec(mtvec),
+    .mepc(mepc),
     .pc_sel(pc_sel),
     .alu_out(alu_out_wire),
     .IM_CEB(IM_CEB),
@@ -114,6 +125,7 @@ IF_ID u_IF_ID(
 	.instr(instr),
 	.instr_sel(instr_sel),
 	.loadUse(load_use),
+	.isWFI(isWFI),
 	.pc_ID(pc_ID),
 	.instr_ID(instr_ID)
 	);
@@ -123,13 +135,16 @@ Decoder u_decode(
 	.clk(clk), 
 	.rst(rst),
 	.instr(instr_ID),
+	.interrupt(interrupt),
 	.opcode_ID(opcode_ID),
 	.funct3_ID(funct3_ID),
 	.funct7_ID(funct7_ID),
 	.rs1_addr_ID(rs1_addr_ID),
 	.rs2_addr_ID(rs2_addr_ID),
 	.rd_addr_ID(rd_addr_ID),
-	.imm_ID(imm_ID)
+	.imm_ID(imm_ID),
+	.isWFI(isWFI),
+	.interrupt_re(interrupt_re)
 	);
 
 
@@ -139,8 +154,17 @@ CSR u_CSR(
 	.busStall(busStall),
 	.pc_sel(pc_sel),
 	.instr(instr),
+	.rs1_data(rs1_data_reg),
+	.isWFI(isWFI),
+	.interrupt_re(interrupt_re),  // mret
+	.interrupt_dma(interrupt_dma),
+	.interrupt_timer(1'b0),   // !!!!!!!!!!!!!!!!!1
+	.pcInterrupt(pc_ID),
 	.isCSR(isCSR),
-	.CSR_out(CSR_out)
+	.CSR_out(CSR_out),
+	.mtvec(mtvec),  // In this design, fix to 32'hh0001_0000. 
+	.mepc(mepc),
+	.interrupt(interrupt)
 	);
 
 
@@ -210,7 +234,6 @@ FloatRegister u_floatRegister(
 	.frs1_data(frs1_data),
 	.frs2_data(frs2_data)
 	);
-
 
 
 ID_EXE u_ID_EXE(
@@ -284,7 +307,9 @@ MEM_WB u_MEM_WB(
     .is_load_MEM(is_load_MEM),
     .rd_addr_MEM(rd_addr_MEM),
     .alu_out_MEM(alu_out_MEM),
+    .DM_CEB(DM_CEB),
     .DM_OUT(DM_OUT),
+    .DM_shift(alu_out_wire[1:0]),
     .wb_en_WB(wb_en_WB),
     .fwb_en_WB(fwb_en_WB),
     .rd_addr_WB(rd_addr_WB),

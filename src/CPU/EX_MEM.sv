@@ -184,7 +184,7 @@ always_comb begin
 				2'b11: DM_BWEB_MEM   = 4'b1101; // SB
 				default: DM_BWEB_MEM = 4'b1111; // Error instruction
 			endcase
-			src2_st1 = src2_st1_tmp << 8;
+			src2_st1 = {src2_st1_tmp[23:0], 8'd0};
 		end
 		else if(alu_out_wire[1:0]==2'b10) begin
 			case(is_store_EX)
@@ -193,7 +193,7 @@ always_comb begin
 				2'b11: DM_BWEB_MEM   = 4'b1011; // SB
 				default: DM_BWEB_MEM = 4'b1111; // Error instruction
 			endcase
-			src2_st1 = src2_st1_tmp << 16;
+			src2_st1 = {src2_st1_tmp[15:0], 16'd0};
 		end
 		else begin  // 2'b11
 			case(is_store_EX)
@@ -202,7 +202,7 @@ always_comb begin
 				2'b11: DM_BWEB_MEM   = 4'b0111; // SB
 				default: DM_BWEB_MEM = 4'b1111; // Error instruction
 			endcase
-			src2_st1 = src2_st1_tmp << 24;
+			src2_st1 = {src2_st1_tmp[7:0], 24'd0};
 		end
 	end
 	else begin

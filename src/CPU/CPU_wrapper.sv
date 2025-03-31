@@ -1,6 +1,7 @@
 module CPU_wrapper(
 	input clk,
 	input rst,
+	input interrupt_dma,
 
 	/*------------------ Master0(IM) Ports ------------------*/
 	// 1. AR channel (Read) 
@@ -97,6 +98,7 @@ module CPU_wrapper(
 
 	logic [1:0] busStall;
 	logic DM_busy, IM_busy;
+	logic isWFI;
 
 	assign busStall = {DM_busy, IM_busy};
 
@@ -104,6 +106,7 @@ module CPU_wrapper(
 		.clk(clk), 
 		.rst(rst),
 		.busStall(busStall),
+		.interrupt_dma(interrupt_dma),
 		.instr(readData_M0),  // IM_OUT(Data read from IM)
 		.IM_WEB(IM_WEB),
 		.pc(IM_A),     
@@ -125,6 +128,7 @@ module CPU_wrapper(
 		.addr(IM_A),
 		.bweb(4'b0000),   // IM don't need write operation
 		.writeData(32'd0),
+		.burst_len(4'd0),  // Fix to 1
 		.readData(readData_M0),
 		.busBusy(IM_busy),
 
@@ -176,6 +180,7 @@ module CPU_wrapper(
 		.addr(DM_A),
 		.bweb(DM_BWEB),
 		.writeData(DM_IN),
+		.burst_len(4'd0),  // Fix to 1
 		.readData(readData_M1),
 		.busBusy(DM_busy),
 

@@ -41,14 +41,16 @@ module AXI_Slave(
     output logic                         BVALID_S,
     input                                BREADY_S,
 
-    // SRAM
+    // MEM
+    input read_en,
+    input write_en,
+
     output logic CEB_S,
     output logic WEB_S,
     output logic [`AXI_ADDR_BITS-1:0] A_S,    // Read/Write address to SRAM
     output logic [`AXI_DATA_BITS-1:0] DI_S,   // Write data to SRAM
     output logic [`AXI_STRB_BITS-1:0] BWEB_S, // Write select
     input  [`AXI_DATA_BITS-1:0] DO_S          // Read data from SRAM
-
 	);
 
 localparam MaxBurst = 4;  // Determine by user
@@ -81,13 +83,27 @@ always_ff@(posedge ACLK, negedge ARESETn) begin
 	end
 end
 
+logic read_early;
+always_ff@(posedge ACLK, negedge ARESETn) begin
+	if(!ARESETn) begin
+		read_early <= 1'b0;
+	end
+	else begin
+		case(state)
+			STANDBY: if(read_en) read_early <= 1'b1;
+			READ_BUSY: if(RLAST_S) read_early <= 1'b0;
+			default: read_early <= 1'b0;
+		endcase
+	end
+end
+
 always_comb begin
-	RID_S = ARID_S;
+	RID_S   = ARID_S;
 	RDATA_S = (state==READ_BUSY && RHS)? DO_S : 32'd0;
-	RRESP_S = (state==READ_BUSY && BurstCnt>MaxBurst)? `AXI_RESP_SLVERR : `AXI_RESP_OKAY;  // In this design, slave can just support Burst=4, it out of boundary it need to send error.
-	RLAST_S = (state==READ_BUSY && BurstCnt==(ARLEN_S+1) );
-	BID_S = AWID_S;
-	BRESP_S = (state==RESPONSE && (BurstCnt>MaxBurst))? `AXI_RESP_SLVERR : `AXI_RESP_OKAY;
+	RRESP_S = (state==READ_BUSY && (BurstCnt>MaxBurst))? `AXI_RESP_SLVERR : `AXI_RESP_OKAY;  // In this design, slave can just support Burst=4, it out of boundary it need to send error.
+	RLAST_S = (state==READ_BUSY && BurstCnt==(ARLEN_S+1) && read_en);
+	BID_S   = AWID_S;
+	BRESP_S = (state==RESPONSE  && (BurstCnt>MaxBurst))? `AXI_RESP_SLVERR : `AXI_RESP_OKAY;
 end
 
 // To SRAM
@@ -96,12 +112,12 @@ always_comb begin
 		RST: begin
 			CEB_S = 1'b1;
 			WEB_S = 1'b1;
-			A_S   = ARADDR_S;
+			A_S   = 32'd0;
 			BWEB_S = 4'b1111;
 			DI_S  = 32'd0;
 		end
 		STANDBY: begin   // In standby state, both Ready is assert.
-			CEB_S = 1'b1;
+			CEB_S = 1'b0;
 			WEB_S = 1'b1;
 			A_S   = ARADDR_S;
 			BWEB_S = 4'b1111;
@@ -110,28 +126,28 @@ always_comb begin
 		READ_BUSY: begin
 			CEB_S = 1'b0;
 			WEB_S = 1'b1;
-			A_S   = ARADDR_S;
+			A_S   = ARADDR_S + ((BurstCnt+read_early-1)<<2);
 			BWEB_S = 4'b1111;
 			DI_S  = 32'd0;
 		end
 		WRITE_BUSY: begin
 			CEB_S = 1'b0;
 			WEB_S = 1'b0;  // Write
-			A_S   = AWADDR_S;
+			A_S   = AWADDR_S + ((BurstCnt-1)<<2);
 			BWEB_S = (WHS)? WSTRB_S : 4'b1111;
 			DI_S  = (WHS)? WDATA_S : 32'd0;
 		end
 		RESPONSE: begin
 			CEB_S = 1'b1;
 			WEB_S = 1'b1;
-			A_S   = ARADDR_S;
+			A_S   = 32'd0;
 			BWEB_S = 4'b1111;
 			DI_S  = 32'd0;
 		end
 		default: begin
 			CEB_S = 1'b1;
 			WEB_S = 1'b1;
-			A_S   = ARADDR_S;
+			A_S   = 32'd0;
 			BWEB_S = 4'b1111;
 			DI_S  = 32'd0;
 		end
@@ -143,10 +159,21 @@ always_ff @(posedge ACLK, negedge ARESETn) begin
 		BurstCnt <= 3'd1;
 	end 
 	else begin
-		if(state==READ_BUSY || state==WRITE_BUSY) begin
-			BurstCnt <= (BurstCnt==(ARLEN_S+1))? BurstCnt : BurstCnt+1;
-		end
-		else BurstCnt <= 3'd1;
+		case(state)
+			// STANDBY: begin
+			// 	if(ARHS && read_en) BurstCnt <= 3'd2;  
+			// 	else BurstCnt <= 3'd1;
+			// end
+			READ_BUSY: begin
+				if(read_en) BurstCnt <= (BurstCnt==(ARLEN_S+1))? BurstCnt : BurstCnt+1;
+			end
+			WRITE_BUSY: begin
+				if(write_en) BurstCnt <= (BurstCnt==(AWLEN_S+1))? BurstCnt : BurstCnt+1;
+			end
+			default: begin
+				BurstCnt <= 3'd1;
+			end
+		endcase
 	end
 end
 
@@ -160,7 +187,7 @@ always_comb begin
 			WREADY_S  = 1'b0;
 			BVALID_S  = 1'b0;
 		end
-		STANDBY: begin   // In standby state, both Ready is assert.
+		STANDBY: begin   // In standby state, both Ready assert.
 			ARREADY_S = 1'b1;
 			RVALID_S  = 1'b0;
 			AWREADY_S = 1'b1;
@@ -169,7 +196,7 @@ always_comb begin
 		end
 		READ_BUSY: begin
 			ARREADY_S = 1'b0;
-			RVALID_S  = 1'b1;
+			RVALID_S  = read_en; // RVALID_S  = 1'b1;
 			AWREADY_S = 1'b0;
 			WREADY_S  = 1'b0;
 			BVALID_S  = 1'b0;
@@ -178,7 +205,7 @@ always_comb begin
 			ARREADY_S = 1'b0;
 			RVALID_S  = 1'b0;
 			AWREADY_S = 1'b0;
-			WREADY_S  = 1'b1;
+			WREADY_S  = write_en; // WREADY_S = 1'b1;
 			BVALID_S  = 1'b0;
 		end
 		RESPONSE: begin
@@ -211,7 +238,7 @@ always_comb begin
 			ntState = (RLAST_S)? STANDBY : READ_BUSY;
 		end
 		WRITE_BUSY: begin
-			ntState = (WLAST_S)? RESPONSE : WRITE_BUSY;
+			ntState = (WLAST_S && WHS)? RESPONSE : WRITE_BUSY;
 		end
 		RESPONSE: begin
 			ntState = (BHS)? STANDBY : RESPONSE;
