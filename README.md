@@ -5,7 +5,12 @@ The system includes several additional modules, such as an AXI bus, a simple DRA
 **Note: This repository does not include a testbench.**
 
 ## Architecture
-![Architecture](https://github.com/user-attachments/assets/acb2b2f5-f335-419f-b0d8-14d910ac0b71)
+### System Design
+<img src="https://github.com/user-attachments/assets/29582d64-e7ff-46d7-be1e-f22b8e9e68ec" width="650" height="450" alt="System Design"/>   
+
+### CPU detail  
+<img src="https://github.com/user-attachments/assets/acb2b2f5-f335-419f-b0d8-14d910ac0b71" width="700" height="400" alt="CPU detail"/> 
+
 ## Supported Instructions  
 This design supports **53 instructions** in total.  
 - **R-Type**  
