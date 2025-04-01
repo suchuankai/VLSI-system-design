@@ -42,9 +42,28 @@ The AXI master module has seven states. After a reset, the state enters `STANDBY
 
 #### **Slave:**  
 The AXI slave module has five states. Its design logic is similar to the master, with one key difference: in the `STANDBY` state, `ARREADY_S` and `AWREADY_S` are set, eliminating the need for an "ADDR_VALID" state.  
-### DMA
+### DMA Module  
+<img src="https://github.com/user-attachments/assets/505f15cd-0dbc-4133-8eaf-8829119fafe9" width="720" height="216" alt="DMA"/>  
 
-### DRAM
+The DMA module has both a master port and a slave port. The slave port is used to configure four registers: `DMAEN`, `DMASRC`, `DMADST`, and `DMALEN`.  
+Once `DMAEN` is set, the DMA starts transferring data. In the `READ` state, the master port reads from the source address and stores the data in a buffer.  
+After the read data reaches the burst length, the state transitions to `WRITE`, where data is written to the destination address. 
+When the processed data length equals `DMALEN`, the module enters the `FINISH` state and sent interrupt to CPU.  
+**Note: If an address crosses a DRAM row boundary or is the last data transfer, the burst length is adjusted; otherwise, it remains fixed at 4.**
 
+### WDT Module  
 
+The WDT (Watchdog Timer) module is controlled by the CPU. Once `WDEN` is set, the WDT starts counting up to `WTOCNT`.  
+If the counter reaches `WTOCNT`, the WDT module sets `WTO` that the CPU's program counter jump to a specific address.  
 
+#### **WDT Registers**  
+
+| Register | Bits | Function                      |  
+|----------|------|------------------------------|  
+| `WDEN`   | 1    | Enable WDT                   |  
+| `WDLIVE` | 1    | Restart the WDT counter      |  
+| `WTOCNT` | 32   | Timeout threshold for WDT    |  
+| `WTO`    | 1    | Timeout signal (interrupt)   |  
+
+## Reference
+NCKU VLSI course
