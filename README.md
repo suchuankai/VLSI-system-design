@@ -1,4 +1,4 @@
-# RISC-V Five Stage Pipeline CPU
+# RISC-V 5-Stage Pipelined CPU System Design
 This project implements a RISC-V 5-stage pipelined CPU using SystemVerilog, based on the NCKU VLSI course.  
 The system includes several additional modules, such as an AXI bus, a simple DRAM simulator, a DMA controller, a watchdog timer (WDT), and two SRAM modules serving as the instruction memory (IM) and data memory (DM) for the CPU.    
   
