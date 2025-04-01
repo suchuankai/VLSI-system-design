@@ -4,22 +4,9 @@ The system includes several additional modules, such as an AXI bus, a simple DRA
   
 **Note: This repository does not include a testbench.**
 
-## Architecture
-### Address Map  
-| Component       | Access Type   | Address Range                     |
-|-----------------|---------------|-----------------------------------|
-| **Master 0 (IM)**  | Read       | -                                 |
-| **Master 1 (DM)**  | Read/Write | -                                 |
-| **Master 2 (DMA)** | Read/Write | -                                 |
-| **Slave 0 (ROM)**  | Read       | `0x0000_0000` ~ `0x0000_1FFF`     |
-| **Slave 1 (IM)**   | Read/Write | `0x0001_0000` ~ `0x0001_FFFF`     |
-| **Slave 2 (DM)**   | Read/Write | `0x0002_0000` ~ `0x0002_FFFF`     |
-| **Slave 3 (DMA)**  | Write      | `0x1002_0000` ~ `0x1002_0400`     |
-| **Slave 4 (WDT)**  | Write      | `0x1001_0000` ~ `0x1001_03FF`     |
-| **Slave 5 (DRAM)** | Read/Write | `0x2000_0000` ~ `0x201F_FFFF`     |
-  
-### Architecture
-![Architecture](https://github.com/user-attachments/assets/24b0841e-8331-4aa1-916e-4d7e9f1552f4)
+## Architecture  
+### System Design
+![Architecture](https://github.com/user-attachments/assets/8f249c27-9313-4a99-813e-05a097af5a76)
 ## Supported Instructions  
 This design supports **53 instructions** in total.  
 - **R-Type**  
@@ -41,8 +28,20 @@ This design supports **53 instructions** in total.
 
 
 ## Design detail
-### AXI bus
+### Address Map && AXI bus FSM 
+![AXI](https://github.com/user-attachments/assets/d18516ae-ffdb-4266-a2cb-b626f4845b11)  
 
+#### **Master:**  
+The AXI master module has seven states. After a reset, the state enters `STANDBY`, where it waits for a request and read/write signals.  
+
+- **Read Operation:**  
+  The address channel handshake occurs first, followed by the data channel handshake. These operations take place in the `RADDR_VALID` and `READ_BUSY` states. Once the data transfer reaches the burst length, the state transitions back to `STANDBY`.  
+
+- **Write Operation:**  
+  The write operation follows a similar process as the read operation, but with an additional response state to handle the B-channel handshake.
+
+#### **Slave:**  
+The AXI slave module has five states. Its design logic is similar to the master, with one key difference: in the `STANDBY` state, `ARREADY_S` and `AWREADY_S` are set, eliminating the need for an "ADDR_VALID" state.  
 ### DMA
 
 ### DRAM
