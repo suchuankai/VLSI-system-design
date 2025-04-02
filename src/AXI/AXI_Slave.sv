@@ -160,10 +160,6 @@ always_ff @(posedge ACLK, negedge ARESETn) begin
 	end 
 	else begin
 		case(state)
-			// STANDBY: begin
-			// 	if(ARHS && read_en) BurstCnt <= 3'd2;  
-			// 	else BurstCnt <= 3'd1;
-			// end
 			READ_BUSY: begin
 				if(read_en) BurstCnt <= (BurstCnt==(ARLEN_S+1))? BurstCnt : BurstCnt+1;
 			end
@@ -176,7 +172,6 @@ always_ff @(posedge ACLK, negedge ARESETn) begin
 		endcase
 	end
 end
-
 
 always_comb begin
 	case(state)
@@ -224,7 +219,6 @@ always_comb begin
 		end
 	endcase
 end
-
 
 always_comb begin
 	case(state)

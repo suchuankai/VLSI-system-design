@@ -12,7 +12,7 @@ module CSR(
 	input [31:0] pcInterrupt,
 	output logic isCSR,
 	output logic [31:0] CSR_out,
-	output logic [31:0] mtvec,   // In this design, fix to 32'hh0001_0000.
+	output logic [31:0] mtvec,   // In this design, fix to 32'h0001_0000.
 	output logic [31:0] mepc,
 	output logic interrupt
 	);
@@ -22,10 +22,8 @@ logic [10:0] imm12;
 logic [3:0] csr_sel, csr_sel_reg;
 logic [63:0] cycleCnt, instretCnt;
 
-
 assign opcode = instr[6:0];
 assign imm12 = instr[31:20]; 
-// sassign csr_sel = {imm12[7], imm12[1]};
 
 logic [31:0] mstatus, mie, mip;
 
@@ -212,7 +210,6 @@ always_ff@(posedge clk, posedge rst) begin
 		end
 	end
 end
-
 
 always_ff@(posedge clk, posedge rst) begin
 	if(rst) begin

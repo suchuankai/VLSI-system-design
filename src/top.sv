@@ -317,12 +317,13 @@ logic [1:0]                BRESP_S5   ;
 logic                      BVALID_S5  ;
 logic                      BREADY_S5  ;
 
-logic dma_interrupt;
+logic WDT_interrupt;
 
 CPU_wrapper u_CPU(
 	.clk(clk),
 	.rst(rst),
 	.interrupt_dma(interrupt_dma),
+	.interrupt_timer(WDT_interrupt),
 	.ARID_M0(ARID_M0), 
   	.ARADDR_M0(ARADDR_M0), 
   	.ARLEN_M0(ARLEN_M0), 
@@ -858,7 +859,42 @@ DRAM_wrapper u_DRAM_wrapper(
 	.D(DRAM_D)
 	);
  
-// WDT_wrapper()
+WDT_wrapper u_WDT_wrapper(
+	.clk(clk),
+	.clk2(clk2),
+	.rst(rst),
+	.rst2(rst2),
+	/*.ARID_S(), 
+	.ARADDR_S(), 
+	.ARLEN_S(),
+	.ARSIZE_S(), 
+	.ARBURST_S(), 
+	.ARVALID_S(), 
+	.ARREADY_S(),
+	.RID_S(), 
+	.RDATA_S(), 
+	.RRESP_S(), 
+	.RLAST_S(), 
+	.RVALID_S(), 
+	.RREADY_S(),*/
+	.AWID_S(AWID_S4),      
+	.AWADDR_S(AWADDR_S4),    
+	.AWLEN_S(AWLEN_S4),   
+	.AWSIZE_S(AWSIZE_S4),    
+	.AWBURST_S(AWBURST_S4),  
+	.AWVALID_S(AWVALID_S4), 
+	.AWREADY_S(AWREADY_S4),
+	.WDATA_S(WDATA_S4),
+	.WSTRB_S(WSTRB_S4),
+	.WLAST_S(WLAST_S4),
+	.WVALID_S(WVALID_S4),
+	.WREADY_S(WREADY_S4),
+	.BID_S(BID_S4),
+	.BRESP_S(BRESP_S4),
+	.BVALID_S(BVALID_S4),
+	.BREADY_S(BREADY_S4),
+	.WDT_interrupt(WDT_interrupt)
+	);
 
 
 

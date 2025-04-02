@@ -14,9 +14,7 @@ module Decoder(
 	output interrupt_re
 	);
 
-// Decode
-
-// For debug propose
+// For debug 
 typedef enum logic [6:0]{
 	Rtype  = 7'b0110011,
 	Itype  = 7'b0010011,
@@ -89,8 +87,5 @@ always_ff@(posedge clk, posedge rst) begin
 		end
 	end
 end
-
-
-
 
 endmodule

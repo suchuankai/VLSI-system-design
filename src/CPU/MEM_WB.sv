@@ -33,7 +33,7 @@ always_ff@(posedge clk, posedge rst) begin
 		DM_shift_reg <= 2'b00;
 	end
 	else begin
-		if(!DM_CEB) DM_shift_reg <=  DM_shift;
+		if(!DM_CEB) DM_shift_reg <= DM_shift;
 	end
 end
 

@@ -99,7 +99,6 @@ module SRAM_wrapper (
     .DO_S(DO)
   );
 
-
   logic [31:0] BWEB_expand;
   assign BWEB_expand = { {8{BWEB[3]}}, {8{BWEB[2]}}, {8{BWEB[1]}}, {8{BWEB[0]}} };
 

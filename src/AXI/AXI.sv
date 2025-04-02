@@ -1,21 +1,3 @@
-//////////////////////////////////////////////////////////////////////
-//          ██╗       ██████╗   ██╗  ██╗    ██████╗            		//
-//          ██║       ██╔══█║   ██║  ██║    ██╔══█║            		//
-//          ██║       ██████║   ███████║    ██████║            		//
-//          ██║       ██╔═══╝   ██╔══██║    ██╔═══╝            		//
-//          ███████╗  ██║  	    ██║  ██║    ██║  	           		//
-//          ╚══════╝  ╚═╝  	    ╚═╝  ╚═╝    ╚═╝  	           		//
-//                                                             		//
-// 	2024 Advanced VLSI System Design, advisor: Lih-Yih, Chiou		//
-//                                                             		//
-//////////////////////////////////////////////////////////////////////
-//                                                             		//
-// 	Autor: 			TZUNG-JIN, TSAI (Leo)				  	   		//
-//	Filename:		 AXI.sv			                            	//
-//	Description:	Top module of AXI	 							//
-// 	Version:		1.0	    								   		//
-//////////////////////////////////////////////////////////////////////
-
 module AXI(
 
 	input ACLK,
@@ -269,12 +251,10 @@ module AXI(
 	output logic BREADY_S5
 );
 
-
 logic [3:0] MRead0_target, MRead1_target, MRead2_target;
 logic [3:0] MWrite0_target, MWrite1_target, MWrite2_target;
 
 logic [2:0] T0_M, T0_S;
-
 
 /*  ################################################
     ###              Master Ports                ###
@@ -405,7 +385,6 @@ assign {AWID_S4, AWADDR_S4, AWLEN_S4, AWSIZE_S4, AWBURST_S4, AWVALID_S4, WDATA_S
 assign {AWID_S5, AWADDR_S5, AWLEN_S5, AWSIZE_S5, AWBURST_S5, AWVALID_S5, WDATA_S5, WSTRB_S5, WLAST_S5, WVALID_S5, BREADY_S5} = SWrite_out[5];
 
 integer i;
-// Transaction 1
 always_comb begin
 	for(i=0; i<6; i=i+1) begin
 		if(i<3) begin

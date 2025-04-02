@@ -32,4 +32,5 @@
 // ROM files
 `include "../src/ROM/ROM_wrapper.sv"
 // WDT files
-// CDC files
+`include "../src/WDT/WDT_wrapper.sv"
+`include "../src/WDT/WDT.sv"

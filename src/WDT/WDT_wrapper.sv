@@ -1,5 +1,5 @@
 module WDT_wrapper(
-	input clk1,
+	input clk,
 	input clk2,
 	input rst,
 	input rst2,
@@ -27,10 +27,14 @@ module WDT_wrapper(
 	output logic WDT_interrupt
 	);
 
+logic [31:0] A_S;
+
+logic w_en;
+assign w_en = WREADY_S && WVALID_S;
 
 AXI_Slave WDT_slave(
-	.ACLK(),
-    .ARESETn(),
+	.ACLK(clk),
+    .ARESETn(~rst),
     
     .ARID_S(), 
     .ARADDR_S(), 
@@ -66,18 +70,28 @@ AXI_Slave WDT_slave(
     .BVALID_S(BVALID_S),
     .BREADY_S(BREADY_S),
 
-    .read_en(),
-    .write_en(),
+    .read_en(1'b1),
+    .write_en(1'b1),
 
     .CEB_S(),
     .WEB_S(),
-    .A_S(),
+    .A_S(A_S),
     .DI_S(),
     .BWEB_S(),
     .DO_S()
     );
 
 
+WDT u_WDT(
+    .clk(clk),
+    .rst(rst),
+    .clk2(clk2),
+    .rst2(rst2),
+    .w_en(w_en),
+    .w_addr(A_S),
+    .w_data(WDATA_S),
+    .WTO(WDT_interrupt)
+    );
 
 
 endmodule

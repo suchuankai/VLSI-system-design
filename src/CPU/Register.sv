@@ -30,16 +30,4 @@ always@(posedge clk, posedge rst) begin
 	end
 end
 
-
-logic [31:0] loop_cnt;
-always@(posedge clk, posedge rst) begin
-	if(rst) begin
-		loop_cnt <= 32'd0;
-	end
-	else begin
-		loop_cnt <= (register[28]==256)? loop_cnt + 1 : loop_cnt;
-	end
-end
-
-
 endmodule

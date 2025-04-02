@@ -2,6 +2,7 @@ module CPU_wrapper(
 	input clk,
 	input rst,
 	input interrupt_dma,
+	input interrupt_timer,
 
 	/*------------------ Master0(IM) Ports ------------------*/
 	// 1. AR channel (Read) 
@@ -107,6 +108,7 @@ module CPU_wrapper(
 		.rst(rst),
 		.busStall(busStall),
 		.interrupt_dma(interrupt_dma),
+		.interrupt_timer(interrupt_timer),
 		.instr(readData_M0),  // IM_OUT(Data read from IM)
 		.IM_WEB(IM_WEB),
 		.pc(IM_A),     

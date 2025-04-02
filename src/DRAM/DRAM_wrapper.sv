@@ -136,7 +136,6 @@ assign write_en = (col_cnt == 3'd5 && read_write);
 
 logic [11:0] rowAddrBuf;
 logic [31:0] addr;
-//assign addr = (read_write)? AWADDR_S : ARADDR_S;
 
 always_ff@(posedge ACLK, posedge rst) begin
     if(rst) begin
@@ -161,7 +160,6 @@ always_comb begin
         COLSEL: ntstate = (col_cnt == 3'd5 && burst_done)? WAITHS : COLSEL;
     endcase
 end
-
 
 // Store burst length and determine read / write
 always_ff@(posedge ACLK, posedge rst) begin
@@ -192,7 +190,6 @@ always_ff@(posedge ACLK, posedge rst) begin
     end
 end
 
-// Store last row address
 always_ff@(posedge ACLK, posedge rst) begin
     if(rst) begin
         D <= 32'd0;
@@ -201,7 +198,6 @@ always_ff@(posedge ACLK, posedge rst) begin
         if(state == COLSEL && !CASn) D <= DI_S;
     end
 end
-
 
 // Counters 
 always_ff@(posedge ACLK, posedge rst) begin
@@ -233,7 +229,6 @@ always_ff@(posedge ACLK, posedge rst) begin
         endcase
     end
 end
-
 
 // DRAM Control signals
 always_comb begin

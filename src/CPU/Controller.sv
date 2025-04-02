@@ -2,6 +2,7 @@ module Controller(
 	input clk, 
 	input rst,
 	input [1:0] busStall,
+	input interrupt,
 	input [6:0] opcode,
 	input [2:0] funct3,
 	input [6:0] funct7,
@@ -216,7 +217,8 @@ always_ff@(posedge clk, posedge rst) begin
 		opcode_reg <= 7'd0;
 	end
 	else begin
-		if(busStall[1]) opcode_reg <= opcode_reg;
+		if(interrupt) opcode_reg <= 7'd0;
+		else if(busStall[1]) opcode_reg <= opcode_reg;
 		else opcode_reg <= (load_use)? 7'd0: opcode;
 	end
 end

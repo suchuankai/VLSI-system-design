@@ -3,6 +3,7 @@ module CPU(
 	input rst,
 	input [1:0] busStall,
 	input interrupt_dma,
+	input interrupt_timer,
 	input [31:0] instr,
 	output IM_WEB,
 	output [31:0] pc,
@@ -126,6 +127,7 @@ IF_ID u_IF_ID(
 	.instr_sel(instr_sel),
 	.loadUse(load_use),
 	.isWFI(isWFI),
+	.interrupt(interrupt),
 	.pc_ID(pc_ID),
 	.instr_ID(instr_ID)
 	);
@@ -158,7 +160,7 @@ CSR u_CSR(
 	.isWFI(isWFI),
 	.interrupt_re(interrupt_re),  // mret
 	.interrupt_dma(interrupt_dma),
-	.interrupt_timer(1'b0),   // !!!!!!!!!!!!!!!!!1
+	.interrupt_timer(interrupt_timer),
 	.pcInterrupt(pc_ID),
 	.isCSR(isCSR),
 	.CSR_out(CSR_out),
@@ -172,6 +174,7 @@ Controller u_controller(
 	.clk(clk),
 	.rst(rst),
 	.busStall(busStall),
+	.interrupt(interrupt),
 	.opcode(opcode_ID),
 	.funct3(funct3_ID),
 	.funct7(funct7_ID),

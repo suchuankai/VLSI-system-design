@@ -40,7 +40,7 @@ logic [31:0] DMASRC_reg, DMADST_reg, DMALEN_reg;
 logic [2:0] cnt;
 logic [31:0] len_cnt;  // Caculate how much data already processed.
 logic last;
-assign last = ((DMALEN_reg-len_cnt) <= 16); // The remain data less than one burst can transfer(burst = 8).
+assign last = ((DMALEN_reg-len_cnt) <= 16); // Relate to burst length .
 
 // DMA control registers
 always_ff@(posedge clk, posedge rst) begin
@@ -122,18 +122,20 @@ always_ff@(posedge clk, posedge rst) begin
 	end
 end
 
+
 always_ff@(posedge clk, posedge rst) begin
 	if(rst) begin
 		burst_len <= 4'd0;
 	end
 	else begin
 		if(last) burst_len <= ((DMALEN_reg-len_cnt) >> 2) - 1;
-		else if(read_addr[11:2]==10'b1111_1111_11 || write_addr[11:2]==10'b1111_1111_11) burst_len <= 0;  // Avoid DRAM read between two page
+		else if(read_addr[11:2]==10'b1111_1111_11 || write_addr[11:2]==10'b1111_1111_11) burst_len <= 0;  // Avoid DRAM read between two row
 		else if(read_addr[11:2]==10'b1111_1111_10 || write_addr[11:2]==10'b1111_1111_10) burst_len <= 1;
 		else if(read_addr[11:2]==10'b1111_1111_01 || write_addr[11:2]==10'b1111_1111_01) burst_len <= 2;
 		else burst_len <= 3;
 	end
 end
+
 
 always_ff@(posedge clk, posedge rst) begin
 	if(rst) begin
@@ -141,53 +143,72 @@ always_ff@(posedge clk, posedge rst) begin
 			buffer[i] <= 32'd0;
 		end
 		cnt <= 3'd0;
-		CEB <= 1'b1;  // enable
-		WEB <= 1'b1;  // Read
 		write_addr <= 32'd0;
 	end
 	else begin
 		case(state)
 			ACCEPT: begin
 				if(DMAEN_reg) begin  // Master2 start read operation
-					CEB <= 1'b0;  // enable
-					WEB <= 1'b1;  // Read
 					read_addr <= DMASRC_reg;
 					write_addr <= DMADST_reg;
 				end
-				interrupt_dma <= 1'b0;
 			end
 			READ: begin
 				if(r_valid) begin
 					cnt <= (cnt==burst_len)? 3'd0 : cnt + 1;
 				end
 				buffer[cnt] <= readData;
-				if(cnt==burst_len) begin  // Start to write
-					CEB <= 1'b0;     // enable
-					WEB <= 1'b0;     // Write
-					//if(r_valid) read_addr <= read_addr + ((burst_len + 1) << 2);
-				end
 			end
 			WRITE: begin
 				if(w_valid) begin
 					cnt <= (cnt==burst_len)? 3'd0 : cnt + 1;
-				end
-				if(cnt==burst_len) begin  // Start back to Read
-					CEB <= 1'b0;     // enable
-					WEB <= 1'b1;     // Read
-					if(w_valid) begin
+					if(cnt==burst_len) begin  // Start back to Read
 						write_addr <= write_addr + ((burst_len + 1) << 2);
 						read_addr <= read_addr + ((burst_len + 1) << 2);
 					end
 				end
 			end
+		endcase
+	end
+end
+
+
+always_ff@(posedge clk, posedge rst) begin
+	if(rst) begin
+		CEB <= 1'b1;  // enable
+		WEB <= 1'b1;  // Read
+		interrupt_dma <= 1'b0;
+	end
+	else begin
+		case(state)
+			ACCEPT: begin
+				if(DMAEN_reg) begin  // Master2 start read operation
+					CEB <= 1'b0;     // enable
+					WEB <= 1'b1;     // Read
+				end
+				interrupt_dma <= 1'b0;
+			end
+			READ: begin
+				if(cnt==burst_len) begin  // Start to write
+					CEB <= 1'b0;     // enable
+					WEB <= 1'b0;     // Write
+				end
+			end
+			WRITE: begin
+				if(cnt==burst_len) begin  // Start back to Read
+					CEB <= 1'b0;     // enable
+					WEB <= 1'b1;     // Read
+				end
+			end
 			FINISH: begin
-				CEB <= 1'b1;     // disble
-				WEB <= 1'b1;     // Read
+				CEB <= 1'b1;         // disble
+				WEB <= 1'b1;         // Read
 				interrupt_dma <= 1'b1;
 			end
 		endcase
 	end
 end
+
 
 always_comb begin
 	case(state)
