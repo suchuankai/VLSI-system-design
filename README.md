@@ -43,7 +43,7 @@ The AXI master module has seven states. After a reset, the state enters `STANDBY
 #### **Slave:**  
 The AXI slave module has five states. Its design logic is similar to the master, with one key difference: in the `STANDBY` state, `ARREADY_S` and `AWREADY_S` are set, eliminating the need for an "ADDR_VALID" state.  
 ### DMA Module  
-<img src="https://github.com/user-attachments/assets/505f15cd-0dbc-4133-8eaf-8829119fafe9" width="720" height="216" alt="DMA"/>  
+<img src="https://github.com/user-attachments/assets/56433358-a37e-4551-acd1-2a9d5af341c7" width="720" height="240" alt="DMA"/>  
 
 The DMA module has both a master port and a slave port. The slave port is used to configure four registers: `DMAEN`, `DMASRC`, `DMADST`, and `DMALEN`.  
 Once `DMAEN` is set, the DMA starts transferring data. In the `READ` state, the master port reads from the source address and stores the data in a buffer.  
